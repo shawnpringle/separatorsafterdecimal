@@ -4,7 +4,7 @@
 #                              ^               
 #                              |               
 #                              |               
-#                   [[SDNNumericValidator]]
+#                   [[QSDNNumericValidator]]
 # 
 # 
 # SDN stands for 'standard decimal notation'.  That is not 'normalized Scientific notation'.
@@ -15,11 +15,11 @@ from PyQt4.QtCore import *
 def atleast0(i):
     return i if i >= 0 else 0
 
-""" SDNNumericValidator limits the number of digits after the decimal
+""" QSDNNumericValidator limits the number of digits after the decimal
  point and the number of digits before. 
  
-  bitcoin                         :  SDNNumericValidator(8, 8)
-  US dollars less than $1,000,000 :  SDNNumericValidator(6, 2)
+  bitcoin                         :  QSDNNumericValidator(8, 8)
+  US dollars less than $1,000,000 :  QSDNNumericValidator(6, 2)
   
   
   If use space is true, spaces are added on the left such that the location
@@ -33,7 +33,7 @@ def atleast0(i):
                      '        0.000,004'
                      
   U.S. dollar amounts;  
-                     dollar = SDNNumericValidator(6,2)
+                     dollar = QSDNNumericValidator(6,2)
                      s = '42.1'
                      dollar.validate(s='42.1', 2)   =>  s = '     42.10'
                      s='50000'
@@ -41,7 +41,7 @@ def atleast0(i):
            
                             
 """
-class SDNNumericValidator(QValidator) :
+class QSDNNumericValidator(QValidator) :
     def __init__(self, maximum_decamals = 1000, maximum_decimals = 1000, use_space = False, parent = None) :
         QValidator.__init__(self, parent)
         # true if we use spaces for justifying the string.
@@ -159,6 +159,7 @@ class SDNNumericValidator(QValidator) :
 	    
     def setLocale(self, plocale):
     	self._locale = plocale
+    	self.emit(SIGNAL("localeSet"), plocale)
 
     def locale(self):
     	return self._locale

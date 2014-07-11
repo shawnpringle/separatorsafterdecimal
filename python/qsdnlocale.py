@@ -73,7 +73,9 @@ class QSDNLocale(QLocale) :
 		    s = QString(s)
 		# derive the base if not set above.
 		try:
-		    s = s.trimmed()		    	
+		    # here a copy is made, the original s will not be
+		    # modified.
+		    s = s.trimmed()
 		    if base == 0:
 			if s.startsWith('0x', Qt.CaseInsensitive):
 			    s = s[2:]
@@ -87,19 +89,20 @@ class QSDNLocale(QLocale) :
 		    return (0, False)
 		v = decimal.Decimal("0")
 		shift = decimal.Decimal('0')
+		are_there_digits = False
 		add_shifts = False
-		digit_count = None
+		comma_offset = None
 		for c in s:
 		    if c == comma:
-			if digit_count == None:
-			    digit_count = 0
-			elif digit_count != 3:
-			    return (0, False)
+			if comma_offset == None:
+			    comma_offset = 0
+			elif comma_offset != 3:
+			    return (1, False)
 			elif self.numberOptions() & QLocale.RejectGroupSeparator == QLocale.RejectGroupSeparator:
-			    return (0, False)
-			digit_count = 0
+			    return (2, False)
+			comma_offset = 0
 		    elif c == point:
-			digit_count = 0
+			comma_offset = 0
 			if add_shifts:
 			    # two decimal point characters is bad
 			    return (v/base**shift, False)
@@ -107,18 +110,17 @@ class QSDNLocale(QLocale) :
 		    else:
 			to_add, status = self.toDecimal(QChar(c), base)
 			if status:
+			    are_there_digits = True
 			    v *= base
 			    v += to_add
-			    if digit_count != None:
-				digit_count += 1
+			    if comma_offset != None:
+				comma_offset += 1
 			    if add_shifts:
 				shift += 1
 			else:
 			    return (v / base**shift, False)	
 		v /= base ** shift
-		if digit_count is None:
-		    return (v, False)
-		return (v, True)
+		return (v, are_there_digits)
 	
 			
 	# Convert any given Decimal, double, Date, Time, int or long to a string.

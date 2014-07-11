@@ -85,6 +85,22 @@ class TestNumericFormating(unittest.TestCase):
         for c in tests:
             self.assertEqual( QString(c[1]), locale.toString(c[0]), msg="Test case %s" % c[1] )
         
+        new_string = '0xFF0'
+ 	(value, ok) = locale.toDecimal(new_string)
+	self.assertEqual( new_string, '0xFF0', msg = 'numbers passed are not modified')
+	a_string = QString('      100')
+	another_string = QString(a_string)
+	locale.toDecimal(a_string)
+	self.assertFalse( a_string is another_string)
+	self.assertEqual( a_string, another_string, msg = "toDecimal doesn't modify string")
+	self.assertEqual( ok,    True,  msg = "hex numbers without commas parse successfully")
+	self.assertEqual( value, 0xFF0, msg = "hex numbers without commas parse correctly")
+	(value, ok) = locale.toDecimal( QString("") )
+	self.assertEqual( ok, False )
+	(value, ok) = locale.toDecimal( QString("The cat came back ") )
+	self.assertEqual( ok, False )
+
+
         # no commas:
         us_locale_no_comma = IQLocale("US")
         us_locale_no_comma.setNumberOptions( QLocale.NumberOptions(QLocale.OmitGroupSeparator) )
@@ -221,7 +237,7 @@ class TestConversion(unittest.TestCase):
     	self.assertEqual( False, locale.toShort('70,000', 10)[1], msg = "value to to short is too long")
 	self.assertEqual( (32000, True), locale.toShort('32,000', 10), msg = "big value to short")
         self.assertEqual( (60000, True), locale.toUShort('60,000', 10), msg = "big value to ushort")
-	self.assertEqual( (2000000, True), locale.toInt('2,000,000', 10), msg = "bg int value to int")		
+	self.assertEqual( (2000000, True), locale.toInt('2,000,000', 10), msg = "bg int value to int")
 
 if __name__ == '__main__':
     unittest.main()
