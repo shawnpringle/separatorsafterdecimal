@@ -1,10 +1,11 @@
 from qsdnlocale import QSDNLocale as IQLocale
-from qsdnvalidator import SDNNumericValidator as CryptoCurrencyValidator
+from qsdnvalidator import QSDNNumericValidator as CryptoCurrencyValidator
 import unittest
 from decimal import Decimal as D
 import decimal
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+import sys
 
 class NumberOption(unittest.TestCase):
     def setUp(self):
@@ -32,39 +33,35 @@ class NumberOption(unittest.TestCase):
     def test_omit_group_separator_option(self):
         self.assertEqual(self.oc_locale.numberOptions() & QLocale.NumberOptions(QLocale.OmitGroupSeparator), QLocale.NumberOptions(QLocale.OmitGroupSeparator))
         self.assertNotEqual(self.oc_locale.numberOptions() & QLocale.RejectGroupSeparator, QLocale.RejectGroupSeparator)
-    
-class TestAllSpaceLessCommasValidation(unittest.TestCase):
-    def test_validation(self):
+
+def test_data_group(self, name, validator, test_set):
     	TESTINPUT=0
     	EXPECTED=1    	
-    	non_spaced_test_set = [  [["1", 1], ["1", QValidator.Acceptable, 1]], \
-        [["17", 2], ["17", QValidator.Acceptable, 2]],\
-        [["17,", 3], ["17,", QValidator.Intermediate, 3]],\
-        [["177", 3], ["177", QValidator.Acceptable, 3]], \
-        [["177,", 4], ["177,", QValidator.Intermediate, 4]], \
-        [["1777", 4], ["1,777", QValidator.Acceptable, 5]], \
-        [["1,7772", 6], ["17,772", QValidator.Acceptable, 6]], \
-        [["17,7721", 7], ["177,721", QValidator.Acceptable, 7]], \
-        [["177,7216", 8], ["1,777,216", QValidator.Acceptable, 9]], \
-        [["23456789", 4], ["23,456,789", QValidator.Acceptable, 5]], \
-        [["0.013410", 7], ["0.013,410", QValidator.Acceptable, 8]], \
-        [["0.0034", 2], ["0.003,4", QValidator.Acceptable, 2]], \
-        [["1", 1], ["1", QValidator.Acceptable, 1]], \
-        [["0", 0], ["0", QValidator.Acceptable, 0]], \
-        [['23124', 3], ["23,124", QValidator.Acceptable, 4]], \
-        [['%!@', 2], ["%!@", QValidator.Invalid, 2]]
-        ]
-        
-        no_spaces = CryptoCurrencyValidator(8, 8, False)
-        no_spaces.setLocale( IQLocale("US") )
-        for test_case in non_spaced_test_set:
+        for test_case in test_set:
             modified_string = QString(test_case[TESTINPUT][0])
-            (status, pos) = no_spaces.validate(modified_string, test_case[TESTINPUT][1])
-            self.assertEqual( test_case[EXPECTED][1], status, 'squeezed: ' + test_case[TESTINPUT][0] + '=>' + test_case[EXPECTED][0] + ' (status)')
-            self.assertEqual(test_case[EXPECTED][2], pos, 'squeezed: ' + str(test_case[TESTINPUT][0]) + '=>' + str(test_case[EXPECTED][0]) + ' (pos)')
-            self.assertEqual( test_case[EXPECTED][0], modified_string, 'squeezed: ' + str(test_case[TESTINPUT][0]) + '=>' + str(test_case[EXPECTED][0]) + ' (string)' )
+            (status, pos) = validator.validate(modified_string, test_case[TESTINPUT][1])
+	    if status == QValidator.Invalid:
+		self.assertEqual( test_case[EXPECTED][1], status, name + test_case[TESTINPUT][0] + '=>' + test_case[EXPECTED][0] + ' (status == QValidator.Invalid)')
+	    elif status == QValidator.Intermediate:
+		self.assertEqual( test_case[EXPECTED][1], status, name + test_case[TESTINPUT][0] + '=>' + test_case[EXPECTED][0] + ' (status == QValidator.Intermediate)')
+	    else:
+		self.assertEqual( test_case[EXPECTED][1], status, name + test_case[TESTINPUT][0] + '=>' + test_case[EXPECTED][0] + ' (status == QValidator.Acceptable)')
+	    if test_case[EXPECTED][1] == QValidator.Acceptable and status == QValidator.Acceptable:
+	    	if pos != test_case[EXPECTED][2]: 
+	    	    exp_pos = test_case[EXPECTED][2] 
+	    	    print str(test_case[EXPECTED][0])
+	    	    if exp_pos < pos:
+			print exp_pos * ' ' + '^' + (pos -exp_pos - 1) * ' ' + '^'
+			print exp_pos * ' ' + '+-- expected '
+			print pos * ' ' +  '+-- actual pos'
+		    else:
+			print pos * ' ' + '^' + (exp_pos - pos - 1) * ' ' + '^'
+			print exp_pos * ' ' + '+-- expected '
+			print pos * ' ' +  '+-- actual pos'
+		    self.assertFail(' (pos was not expected)')
+		self.assertEqual( test_case[EXPECTED][0], modified_string, name + str(test_case[TESTINPUT][0]) + '=>' + str(test_case[EXPECTED][0]) + ' (string)' )
+    	
 
-        self.assertEqual(  (QValidator.Acceptable, 0), no_spaces.validate(QString("0.003,2"), 0), msg="0.003,2" )
 
 class TestNumericFormating(unittest.TestCase):
     
@@ -182,20 +179,22 @@ class TestNumericFormating(unittest.TestCase):
         
         (status, pos) = validator.validate(QString(""), 0)
         self.assertEqual( QValidator.Intermediate, status, msg="Validate validate partial string #0" )
-        for test_case_type in validator_test_data:    
+        for test_case_type in validator_test_data:
             result_string = QString(test_case_type[1])
             (status, pos) = validator.validate(result_string, 0)
-            self.assertEqual( test_case_type[0][0], status, msg=test_case_type[1] + "=>" + test_case_type[0][1] + " status" )
-            # print "status is ", status == QValidator.Acceptable
-            if test_case_type[0][0] == QValidator.Acceptable:
-                self.assertEqual( test_case_type[0][1], result_string.trimmed(), msg=test_case_type[1] + "=>" + test_case_type[0][1] + " string" )
+            if status == QValidator.Acceptable:
+		self.assertEqual( test_case_type[0][0], status, msg=test_case_type[1] + "=>" + test_case_type[0][1] + " status" )
+		# print "status is ", status == QValidator.Acceptable
+		if test_case_type[0][0] == QValidator.Acceptable:
+		    self.assertEqual( test_case_type[0][1], result_string.trimmed(), msg=test_case_type[1] + "=>" + test_case_type[0][1] + " string" )
                 
         egyptian = IQLocale( QLocale( QLocale.Arabic, QLocale.Egypt ) )
         self.assertEqual( QString(u'\u0663\u066b\u0661\u0664\u0661\u066c\u0666'), egyptian.toString( decimal.Decimal('3.1416') ) , msg= "Egyptian PI 5 digits" )
         
         spacing_validator = CryptoCurrencyValidator(8, 8, True)
         spacing_validator.setLocale( IQLocale("US") )
-        
+        self.validator = spacing_validator
+        self.name = 'spaced'
         spaced_test_set = [  [["1", 1], ["         1", QValidator.Acceptable, 10]], \
                       [[9*' '+"17", 11], [8*' '+"17", QValidator.Acceptable, 10]],\
                       [[8*' '+"17,", 11], [8*' '+"17,", QValidator.Intermediate, 11]],\
@@ -215,19 +214,33 @@ class TestNumericFormating(unittest.TestCase):
                   [['        0.471,400', 8], ['         0.471,400', QValidator.Acceptable, 9]], \
                   [['11,213,421.000,1', 0], ['11,213,421.000,1', QValidator.Acceptable, 0]], \
                   [['        100', 11], ['       100', QValidator.Acceptable, 10]], \
-                  [[' 1,000,000', 9], [' 1,000,000', QValidator.Acceptable, 9]], \
-                  
-                             ]
-        for test_case in spaced_test_set:
-            modified_string = QString(test_case[TESTINPUT][0] + '')
-            assert(modified_string is not test_case[TESTINPUT][0])
-            pos = test_case[TESTINPUT][1]
-            (status, pos) = spacing_validator.validate(modified_string, pos)
-            self.assertEqual( test_case[EXPECTED][1], status, 'spaced: ' + test_case[TESTINPUT][0] + '=>' + test_case[EXPECTED][0] + ' (status)' )
-            if test_case[EXPECTED][1] == QValidator.Acceptable:
-            	# print test_case, pos
-                self.assertEqual( test_case[EXPECTED][2], pos, 'spaced: ' + str(test_case[TESTINPUT][0]) + '=>' + str(test_case[EXPECTED][0]) + ' (pos)' )
-                self.assertEqual( test_case[EXPECTED][0], modified_string, 'spaced: ' + str(test_case[TESTINPUT][0]) + '=>' + str(test_case[EXPECTED][0]) + ' (string)' )
+                  [[' 1,000,000', 9], [' 1,000,000', QValidator.Acceptable, 9]]       ]
+        self.test_set = spaced_test_set
+	test_data_group(self, self.name, self.validator, self.test_set)                  
+
+        no_spaces = CryptoCurrencyValidator(8, 8, False)
+        no_spaces.setLocale( IQLocale("US") )
+        test_data_group(self, 'no spaces', no_spaces, [  [["1", 1], ["1", QValidator.Acceptable, 1]], \
+        [["17", 2], ["17", QValidator.Acceptable, 2]],\
+        [["17,", 3], ["17,", QValidator.Intermediate, 3]],\
+        [["177", 3], ["177", QValidator.Acceptable, 3]], \
+        [["177,", 4], ["177,", QValidator.Intermediate, 4]], \
+        [["1777", 4], ["1,777", QValidator.Acceptable, 5]], \
+        [["1,7772", 6], ["17,772", QValidator.Acceptable, 6]], \
+        [["17,7721", 7], ["177,721", QValidator.Acceptable, 7]], \
+        [["177,7216", 8], ["1,777,216", QValidator.Acceptable, 9]], \
+        [["23456789", 4], ["23,456,789", QValidator.Acceptable, 5]], \
+        [["0.013410", 7], ["0.013,410", QValidator.Acceptable, 8]], \
+        [["0.000,000,001", 14], ["0.000,000,001", QValidator.Intermediate, 14]], \
+        [["0.000,000,000,001", 18], ["0.000,000,000.001", QValidator.Intermediate, 18]], \
+        [["10,000,0000", 12], ["100,000,000", QValidator.Intermediate, 12]], \
+        [["0.0034", 2], ["0.003,4", QValidator.Acceptable, 2]], \
+        [["1", 1], ["1", QValidator.Acceptable, 1]], \
+        [["0", 0], ["0", QValidator.Acceptable, 0]], \
+        [['23124', 3], ["23,124", QValidator.Acceptable, 4]], \
+        [['%!@', 2], ["%!@", QValidator.Invalid, 2]], \
+        [["0.003,2", 0], ["0.003,2", QValidator.Acceptable, 0]]   ])
+
 
 class TestConversion(unittest.TestCase):
     def test_all(self):
