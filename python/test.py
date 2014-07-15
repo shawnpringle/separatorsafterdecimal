@@ -1,5 +1,5 @@
-from qsdnlocale import QSDNLocale as IQLocale
-from qsdnvalidator import QSDNNumericValidator as CryptoCurrencyValidator
+from qsdn import QSDNLocale as IQLocale
+from qsdn import QSDNNumericValidator as CryptoCurrencyValidator
 import unittest
 from decimal import Decimal as D
 import decimal
@@ -214,7 +214,9 @@ class TestNumericFormating(unittest.TestCase):
                   [['        0.471,400', 8], ['         0.471,400', QValidator.Acceptable, 9]], \
                   [['11,213,421.000,1', 0], ['11,213,421.000,1', QValidator.Acceptable, 0]], \
                   [['        100', 11], ['       100', QValidator.Acceptable, 10]], \
-                  [[' 1,000,000', 9], [' 1,000,000', QValidator.Acceptable, 9]]       ]
+                  [[' 1,000,000', 9], [' 1,000,000', QValidator.Acceptable, 9]], \
+                  [['Hello', 2], ['Hello', QValidator.Invalid, 2] ] \
+        ]
         self.test_set = spaced_test_set
 	test_data_group(self, self.name, self.validator, self.test_set)                  
 
@@ -239,7 +241,9 @@ class TestNumericFormating(unittest.TestCase):
         [["0", 0], ["0", QValidator.Acceptable, 0]], \
         [['23124', 3], ["23,124", QValidator.Acceptable, 4]], \
         [['%!@', 2], ["%!@", QValidator.Invalid, 2]], \
-        [["0.003,2", 0], ["0.003,2", QValidator.Acceptable, 0]]   ])
+        [["0.003,2", 0], ["0.003,2", QValidator.Acceptable, 0]], \
+        [['Hello', 2], ['Hello', QValidator.Invalid, 2] ] \
+          ])
 
 
 class TestConversion(unittest.TestCase):
@@ -250,8 +254,8 @@ class TestConversion(unittest.TestCase):
     	self.assertEqual( False, locale.toShort('70,000', 10)[1], msg = "value to to short is too long")
 	self.assertEqual( (32000, True), locale.toShort('32,000', 10), msg = "big value to short")
         self.assertEqual( (60000, True), locale.toUShort('60,000', 10), msg = "big value to ushort")
-	self.assertEqual( (2000000, True), locale.toInt('2,000,000', 10), msg = "bg int value to int")
-
+	self.assertEqual( (2000000, True), locale.toInt('2,000,000', 10), msg = "big int value to int")
+	self.assertEqual( (4000000, True), locale.toUInt('4,000,000', 10), msg = "big uint value to int")
 if __name__ == '__main__':
     unittest.main()
 
