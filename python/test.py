@@ -49,6 +49,7 @@ def test_data_group(self, name, validator, test_set):
 	    if test_case[EXPECTED][1] == QValidator.Acceptable and status == QValidator.Acceptable:
 	    	if pos != test_case[EXPECTED][2]: 
 	    	    exp_pos = test_case[EXPECTED][2] 
+	    	    print ''
 	    	    print str(test_case[EXPECTED][0])
 	    	    if exp_pos < pos:
 			print exp_pos * ' ' + '^' + (pos -exp_pos - 1) * ' ' + '^'
@@ -58,7 +59,7 @@ def test_data_group(self, name, validator, test_set):
 			print pos * ' ' + '^' + (exp_pos - pos - 1) * ' ' + '^'
 			print exp_pos * ' ' + '+-- expected '
 			print pos * ' ' +  '+-- actual pos'
-		    self.assertFail(' (pos was not expected)')
+		    self.assertTrue(False, ' (pos was not expected)')
 		self.assertEqual( test_case[EXPECTED][0], modified_string, name + str(test_case[TESTINPUT][0]) + '=>' + str(test_case[EXPECTED][0]) + ' (string)' )
     	
 
@@ -176,14 +177,16 @@ class TestNumericFormating(unittest.TestCase):
         ((QValidator.Acceptable, "0.42"), ".42"),
         ((QValidator.Invalid, "0123.12.3"), "0123.12.3") ]
         
-        
+        validate_strings = [ 'QValidator.Invalid', 'QValidator.Intermediate', 'QValidator.Acceptable' ]
         (status, pos) = validator.validate(QString(""), 0)
         self.assertEqual( QValidator.Intermediate, status, msg="Validate validate partial string #0" )
         for test_case_type in validator_test_data:
             result_string = QString(test_case_type[1])
             (status, pos) = validator.validate(result_string, 0)
             if status == QValidator.Acceptable:
-		self.assertEqual( test_case_type[0][0], status, msg=test_case_type[1] + "=>" + test_case_type[0][1] + " status" )
+            	if status != test_case_type[0][0]:
+            	    print "status is %s.  it should be %s " % (validate_strings[status], validate_strings[ test_case_type[0][0] ] )
+		    self.assertTrue( False, msg=test_case_type[1] + "=>" + test_case_type[0][1] + " status" )
 		# print "status is ", status == QValidator.Acceptable
 		if test_case_type[0][0] == QValidator.Acceptable:
 		    self.assertEqual( test_case_type[0][1], result_string.trimmed(), msg=test_case_type[1] + "=>" + test_case_type[0][1] + " string" )

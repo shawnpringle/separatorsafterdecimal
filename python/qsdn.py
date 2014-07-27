@@ -31,20 +31,25 @@
 # 
 # SDN stands for 'standard decimal notation'.  That is not 'normalized Scientific notation'.
 
-import re
 import decimal
-import string
-import sys
-import os
-from decimal import localcontext
 from decimal import Decimal as D
-try:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-except ImportError:
-    print "You need to have PyQT installed to run these tests."
-    print "If you have pip installed try 'sudo pip install pyqt' if you are on Debian/Ubuntu try 'sudo apt-get install python-qt4'."
-    sys.exit(0)
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+
+def add_commas(locale, st):
+    if (locale.numberOptions() & QLocale.OmitGroupSeparator) != QLocale.OmitGroupSeparator:
+    	dpl = (st.indexOf(locale.decimalPoint()) + st.length() + 1) % (st.length() + 1)
+	i = dpl+4
+	while i < st.length():
+	    st.insert(i, locale.groupSeparator())
+	    i += 4
+	i = dpl-3
+	while i > 0 and st[i] != ' ':
+	    st.insert(i, locale.groupSeparator())	    
+	    i -= 3
+    return st
+
+
 
 class QSDNLocale(QLocale) :
     """ 
@@ -88,14 +93,6 @@ class QSDNLocale(QLocale) :
         self._maximum_decimals = p_maximum_decimals
             
             
-    # Convert a single digit number to a QCharacter with the character that represents that single
-    # digit number in *this* locale.
-    # d must be such that 0 <= d < 10.
-    def _toQChar(self, d):
-        assert(0 <= d < 10)
-        d = int(d)
-        return QChar(self.zeroDigit().unicode() + d)
-    
     def toDecimal(self, s, base = 0):
     	"""This creates a decimal representation of s.
     	   
@@ -171,7 +168,7 @@ class QSDNLocale(QLocale) :
                     if add_shifts:
                         shift += 1
                 else:
-                    return (v / base**shift, False)        
+                    return (v / base**shift, False)
         v /= base ** shift
         return (v, are_there_digits)
     
@@ -234,18 +231,7 @@ class QSDNLocale(QLocale) :
             if dpl != -1:
                 while st.endsWith(QString(self.zeroDigit())) and st.length()-dpl-1 > self._mandatory_decimals:
                     st.chop(1)
-        if (self.numberOptions() & QLocale.OmitGroupSeparator) != QLocale.OmitGroupSeparator:
-            dpl = st.indexOf(self.decimalPoint())
-            if dpl == -1:
-                dpl = st.length()
-            i = dpl+4
-            while i < st.length():
-                st.insert(i, self.groupSeparator())
-                i += 4
-            i = dpl-3
-            while i > 0:
-                st.insert(i, self.groupSeparator())
-                i -= 3            
+	st = add_commas(self, st)
         if xt.sign == 1:
             st.prepend(self.negativeSign())
         return st
@@ -380,9 +366,6 @@ class QSDNLocale(QLocale) :
         
         Leading and trailing whitespace is ignored.    	""" 
         return QLocale.toUShort(self, self._filtered(s), base)
-    
-def atleast0(i):
-    return i if i >= 0 else 0
 
 class QSDNNumericValidator(QValidator) :
     """ QSDNNumericValidator limits the number of digits after the decimal
@@ -455,13 +438,11 @@ class QSDNNumericValidator(QValidator) :
 	
     	whole_part = QRegExp(QString('^ *((\d|') + self._locale.groupSeparator() + ')*)')
     	whole_part.indexIn(s)    	
-    	decimalPoint_location = s.indexOf(self._locale.decimalPoint())
-    	decimalPoint_location = s.length() if decimalPoint_location == -1 else decimalPoint_location
+    	decimalPoint_location = whole_part.matchedLength()
     	assert(decimalPoint_location in range(0, s.length()+1))
-    	needed_white = atleast0(self.characters_before_decimalPoint - whole_part.cap(1).length())
-	if self.characters_before_decimalPoint != decimalPoint_location:
-	    pos += self.characters_before_decimalPoint - decimalPoint_location if pos != 0 else 0
-	    s.replace( QRegExp("^ *"), QString(needed_white*' ') )
+    	needed_white = max(0, self.characters_before_decimalPoint - whole_part.cap(1).length())
+	pos += self.characters_before_decimalPoint - decimalPoint_location if pos != 0 else 0
+	s.replace( QRegExp("^ *"), QString(needed_white*' ') )
 	assert(s.indexOf('.') == -1 or s.indexOf('.') == self.characters_before_decimalPoint)
 	return pos
     	       	
@@ -490,29 +471,27 @@ class QSDNNumericValidator(QValidator) :
 	    	fraction_part = QString("")
 	    comma_last = False
 	else:
-	    pos_inside_spaces = False if pos in range(self.improper_decimal_re.pos(2),s.length()+1) else True	    	     
+	    pos_inside_spaces = pos < self.improper_decimal_re.pos(2)	    	     
 	    comma_last = s.at(s.length()-1) == self._locale.groupSeparator()
-	    after_comma = pos > 0 and pos <= s.length() and s.at(pos-1) == self._locale.groupSeparator()
+	    after_comma = pos in range(1,s.length()+1) and s.at(pos-1) == self._locale.groupSeparator()
 	    old_count = self._count_occurences(s, pos)
 	    if debug:
 		print 'digits before this position(%d) is %d' % (pos, old_count)
 	    [whole_part, fraction_part] = [self.improper_decimal_re.cap(2), self.improper_decimal_re.cap(4)]
 	    whole_part.replace(QString(self._locale.groupSeparator()), '')
 	    fraction_part.replace(QString(self._locale.groupSeparator()),'')
-	    fraction_part = QString('{:,}'.format(long(str((fraction_part.append('5'))[::-1])))[::-1] if fraction_part != QString('') else '')
-	    fraction_part.replace(QRegExp('(,5|5,|5)$'), '')
-	    fraction_part.replace(',', self._locale.groupSeparator())
+	    fraction_part = add_commas( self._locale, QString(str(fraction_part)[::-1]) )
+	    fraction_part = QString(str(fraction_part)[::-1])
 	    if fraction_part != QString(''):
-		fraction_part.prepend(self._locale.decimalPoint())
-	    whole_part = QString('{:,}'.format(long(str(whole_part))) if whole_part != '' else '0')
-	    whole_part.replace(',', self._locale.groupSeparator())
+	    	fraction_part.prepend(self._locale.decimalPoint())
+            whole_part = add_commas(self._locale, whole_part) if whole_part != '' else QString('0')
 	    s.clear()
 	    s.append(self.improper_decimal_re.cap(1)) # the spaces
 	    s.append(whole_part)
 	    s.append(fraction_part)
 	    if comma_last:
 		s.append(',')
-	    pos = atleast0(self.improper_decimal_re.pos(1)) if pos_inside_spaces else atleast0(self.improper_decimal_re.pos(2))
+	    pos = max(0, self.improper_decimal_re.pos(1)) if pos_inside_spaces else max(0, self.improper_decimal_re.pos(2))
 	    while pos < s.length() and old_count > 0:
 		if s[pos] != self._locale.groupSeparator() and s.at(pos) != QChar(' '):
 		    old_count -= 1
@@ -520,7 +499,7 @@ class QSDNNumericValidator(QValidator) :
 		    print "(%d,%d)" % (old_count, pos)
 		pos += 1
 	    if debug:
-		print 'digits before this position(%d) is %d' % (pos, self._count_occurences(s, pos))    
+		print 'digits before this position(%d) is %d' % (pos, self._count_occurences(s, pos))
 	    if after_comma and pos in range(0,s.length()) and s[pos] == self._locale.groupSeparator():
 		pos += 1
 	    if debug:
