@@ -8,7 +8,10 @@
     Also, numbers are always expressed in standard decimal notation.
         
     Care has been taken to overload all of the members in a way
-    that is consistent with the base class QLocale and QValidator.  
+    that is consistent with the base class QLocale and QValidator.
+    
+    This module requires PyQt4.  It doesn't need but it can use KDE.  If KDE and PyKDE are installed on your system, KDE's settings for thousands separator and decimal symbol will be used.  Otherwise
+    the system's locale settings will be used to determine these values.
 """
 
 # Class inheritance diagram
@@ -36,6 +39,29 @@ from decimal import Decimal as D
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+# KDE: a walled garden.
+# This is supposed to work with or without KDE.
+
+# Style note:
+# You might be wondering why I didn't make a class for KDE's locale in
+# order to avoid assigning methods. The goal of QSDNLocale is to provide
+# a drop in replacement for QLocale. A KDELocale if implemented as a
+# separate class, would require the user to handle KDE as a special
+# case. In order to comply with drop in replacement requirement, the
+# user shall see only one locale subclass from here. Trying to use a
+# hidden subclass with setDefault meant we needed a flag, and to assign
+# to methods anyway.
+try:
+    from PyKDE4.kdecore import KGlobal
+    def _make_KDE(locale):
+	locale.decimalPoint = KGlobal.locale().decimalSymbol
+	locale.groupSeparator = KGlobal.locale().thousandsSeparator
+except:
+    # "** Could not load KDE: Falling back to QT only."
+    def _make_KDE(locale):
+    	pass
+
+
 def add_commas(locale, st):
     if (locale.numberOptions() & QLocale.OmitGroupSeparator) != QLocale.OmitGroupSeparator:
     	dpl = (st.indexOf(locale.decimalPoint()) + st.length() + 1) % (st.length() + 1)
@@ -48,7 +74,6 @@ def add_commas(locale, st):
 	    st.insert(i, locale.groupSeparator())	    
 	    i -= 3
     return st
-
 
 
 class QSDNLocale(QLocale) :
@@ -65,10 +90,12 @@ class QSDNLocale(QLocale) :
         
         s = locale.toString(d)
        
+        By default QSDNLocale will use the settings specified in the control panel.  This is guaranteed to be true for Mac OS, Windows and KDE-GUIs.  
+         
         
         
     """
-    
+    _default_KDE = True
     
     # p_mandatory_decimals becomes _mandatory_decimals
     # p_maximum_decimals becomes _maximum_decimals
@@ -84,11 +111,13 @@ class QSDNLocale(QLocale) :
           p_maximum_decimals (int or Decimal) the maximum number of decimals required for a number
         """
         if _name.__class__ == str or _name.__class__ == QLocale or _name.__class__ == QSDNLocale:
-                QLocale.__init__(self, _name)
+	    QLocale.__init__(self, _name)
         elif _name is None:
-                    QLocale.__init__(self)
+	    QLocale.__init__(self)
+	    if QSDNLocale._default_KDE:
+		_make_KDE(self)
         else:
-                    QLocale.__init__(self, _name)
+	    QLocale.__init__(self, _name)
         self._mandatory_decimals = p_mandatory_decimals
         self._maximum_decimals = p_maximum_decimals
             
@@ -239,8 +268,10 @@ class QSDNLocale(QLocale) :
     @staticmethod                
     def system() :
     	""" Returns the system default for QSDNLocale.  
-    	"""
-        return QSDNLocale(QLocale.system())
+    	"""    	
+	this_sysdefault = QSDNLocale(QLocale.system())
+	_make_KDE(this_sysdefault)
+	return this_sysdefault
     
     @staticmethod
     def c() :
@@ -250,7 +281,14 @@ class QSDNLocale(QLocale) :
         _c.setNumberOptions( QLocale.OmitGroupSeparator | QLocale.RejectGroupSeparator )
         return _c
         
-            
+    @staticmethod
+    def setDefault(new_default):
+    	try:
+	    QSDNLocale._default_KDE = (new_default.decimalPoint == KGlobal.locale().decimalSymbol)
+	except:
+	    QSDNLocale._default_KDE = False
+    	QLocale.setDefault(new_default)
+    	
     # returns a filtered copy of s so that it can be used by the  dumber QLocale's to* routines.
     #  if QLocale.RejectGroupSeparator is set, this routine wont filter commas.  A decimal point on the end of the number will be removed if 
     #  present.
@@ -366,6 +404,8 @@ class QSDNLocale(QLocale) :
         
         Leading and trailing whitespace is ignored.    	""" 
         return QLocale.toUShort(self, self._filtered(s), base)
+	    
+
 
 class QSDNNumericValidator(QValidator) :
     """ QSDNNumericValidator limits the number of digits after the decimal
@@ -400,13 +440,7 @@ class QSDNNumericValidator(QValidator) :
         self.spaced = use_space        
         self.characters_before_decimalPoint = maximum_decamals * 4 // 3
        	self.characters_after_decimalPoint = maximum_decimals * 4 // 3
-        self._locale = QSDNLocale(QLocale.system())
-        space_part = ' *' if self.spaced else ''
-        decimalPoint = QRegExp.escape(QString(self._locale.decimalPoint()))
-        groupSeparator = QRegExp.escape(QString(self._locale.groupSeparator()))
-        self.proper_re = QRegExp('(' + space_part + \
-            '\d{1,3}(' + groupSeparator + '\d{3})*)(' + decimalPoint + '((\d{3}' + groupSeparator + ')*\d{1,3})?)?')
-        self.improper_decimal_re = QRegExp('(' + space_part + ')([\d' + groupSeparator + ']*)(' + decimalPoint + '([\d' + groupSeparator + ']*))?')
+       	self.setLocale( QSDNLocale() )
    
     def decimals(self):
     	""" gets the number of decimal points that are allowed *after* the decimal point """
@@ -443,7 +477,7 @@ class QSDNNumericValidator(QValidator) :
     	needed_white = max(0, self.characters_before_decimalPoint - whole_part.cap(1).length())
 	pos += self.characters_before_decimalPoint - decimalPoint_location if pos != 0 else 0
 	s.replace( QRegExp("^ *"), QString(needed_white*' ') )
-	assert(s.indexOf('.') == -1 or s.indexOf('.') == self.characters_before_decimalPoint)
+	assert(s.indexOf( self._locale.decimalPoint()) == -1 or s.indexOf(self._locale.decimalPoint()) == self.characters_before_decimalPoint)
 	return pos
     	       	
     def validate(self, s, pos):
@@ -490,7 +524,7 @@ class QSDNNumericValidator(QValidator) :
 	    s.append(whole_part)
 	    s.append(fraction_part)
 	    if comma_last:
-		s.append(',')
+		s.append(self._locale.groupSeparator())
 	    pos = max(0, self.improper_decimal_re.pos(1)) if pos_inside_spaces else max(0, self.improper_decimal_re.pos(2))
 	    while pos < s.length() and old_count > 0:
 		if s[pos] != self._locale.groupSeparator() and s.at(pos) != QChar(' '):
@@ -522,6 +556,12 @@ class QSDNNumericValidator(QValidator) :
     	""" Set the locale used by this Validator.  
     	"""
     	self._locale = plocale
+        space_part = ' *' if self.spaced else ''
+        decimalPoint = QRegExp.escape(QString(self._locale.decimalPoint()))
+        groupSeparator = QRegExp.escape(QString(self._locale.groupSeparator()))
+        self.proper_re = QRegExp('(' + space_part + \
+            '\d{1,3}(' + groupSeparator + '\d{3})*)(' + decimalPoint + '((\d{3}' + groupSeparator + ')*\d{1,3})?)?')
+        self.improper_decimal_re = QRegExp('(' + space_part + ')([\d' + groupSeparator + ']*)(' + decimalPoint + '([\d' + groupSeparator + ']*))?')
     	self.emit(SIGNAL("localeSet"), plocale)
 
     def locale(self):

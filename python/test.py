@@ -77,25 +77,25 @@ class TestNumericFormating(unittest.TestCase):
         tests = ( (decimal.Decimal("43112279.75467"), "43,112,279.754,67"), (decimal.Decimal("0.0101020204"), "0.010,102,020,4"),
             (decimal.Decimal("0.00000001"), "0.000,000,01")
             )
-        locale = IQLocale("US")
-        QLocale.setDefault(locale)
+        us_locale = IQLocale("en_US")
+        QLocale.setDefault(us_locale)
         verbose = False
         for c in tests:
-            self.assertEqual( QString(c[1]), locale.toString(c[0]), msg="Test case %s" % c[1] )
+            self.assertEqual( QString(c[1]), us_locale.toString(c[0]), msg="Test case %s" % c[1] )
         
         new_string = '0xFF0'
- 	(value, ok) = locale.toDecimal(new_string)
+ 	(value, ok) = us_locale.toDecimal(new_string)
 	self.assertEqual( new_string, '0xFF0', msg = 'numbers passed are not modified')
 	a_string = QString('      100')
 	another_string = QString(a_string)
-	locale.toDecimal(a_string)
+	us_locale.toDecimal(a_string)
 	self.assertFalse( a_string is another_string)
 	self.assertEqual( a_string, another_string, msg = "toDecimal doesn't modify string")
 	self.assertEqual( ok,    True,  msg = "hex numbers without commas parse successfully")
 	self.assertEqual( value, 0xFF0, msg = "hex numbers without commas parse correctly")
-	(value, ok) = locale.toDecimal( QString("") )
+	(value, ok) = us_locale.toDecimal( QString("") )
 	self.assertEqual( ok, False )
-	(value, ok) = locale.toDecimal( QString("The cat came back ") )
+	(value, ok) = us_locale.toDecimal( QString("The cat came back ") )
 	self.assertEqual( ok, False )
 
 
@@ -109,61 +109,61 @@ class TestNumericFormating(unittest.TestCase):
         if verbose:
             try:
                 spanishlocale = IQLocale("es_ES")
-                print "Using %s locale" % spanishlocale.name()
+                print "Using %s us_locale" % spanishlocale.name()
                 for c in tests:
                     print "The value %s is %s" % (c[1], spanishlocale.toString(c[0]))
             except:
-                print "Could not get a Spanish locale to show you what they look like.  too bad."
+                print "Could not get a Spanish us_locale to show you what they look like.  too bad."
                 
             try:
                 koreanlocale = IQLocale("kr")
-                print "Using %s locale" % koreanlocale.name()
+                print "Using %s us_locale" % koreanlocale.name()
                 for c in tests:
                     print "The value %s is %s" % (c[1], koreanlocale.toString(c[0]))
             except:
-                print "Could not get a Korean locale to show you what they look like.  too bad."
+                print "Could not get a Korean us_locale to show you what they look like.  too bad."
                 
             try:
                 clocale = IQLocale("C")
-                print "Using %s locale" % clocale.name()
+                print "Using %s us_locale" % clocale.name()
                 for c in tests:
                     print "The value %s is %s" % (c[1], clocale.toString(c[0]))
             except:
-                print "Could not get the C locale to show you what they look like.  too bad."
+                print "Could not get the C us_locale to show you what they look like.  too bad."
             
             
-            print "The locale your system is using is %s" % QLocale.system().name()
+            print "The us_locale your system is using is %s" % QLocale.system().name()
             
-        (d, good) = locale.toDecimal(QString("7,423,231,123"), 10)
+        (d, good) = us_locale.toDecimal(QString("7,423,231,123"), 10)
         self.assertEqual( True, good, msg="7 billion #1" )
         self.assertEqual( decimal.Decimal("7423231123"), d , msg="7 billion #2" )
-        self.assertEqual( "7,423,231,123", locale.toString(d) , msg="7 billion #3" )
+        self.assertEqual( "7,423,231,123", us_locale.toString(d) , msg="7 billion #3" )
         
-        (d, good) = locale.toDecimal(QString("0xB,ADF,00D"))
+        (d, good) = us_locale.toDecimal(QString("0xB,ADF,00D"))
         self.assertEqual( True, good, msg="0xB,ADF,00D #1" )
         self.assertEqual( decimal.Decimal("195948557"), d, msg="0xB,ADF,00D #2" )
-        self.assertEqual( (decimal.Decimal("0.3125"), True), locale.toDecimal("0x0.5"), msg="5/16 hex #1" ) # 5/16
-        self.assertEqual( (decimal.Decimal("0.3125"), True), locale.toDecimal("0.5", 16), msg="5/16 hex #2" ) # 5/16
-        self.assertEqual( (D("1.25"), True), locale.toDecimal("01.2"), msg="1 1/4 octal #1" )  # 1 1/4
-        self.assertEqual( (D("1.25"), True), locale.toDecimal("1.2", 8), msg="1 1/4 octal #2" )  # 1 1/4
-        self.assertEqual( (D("1.2"), True), locale.toDecimal(QString("01.2"), 10), msg="1 1/5 decimal #1" )	# 1 1/5
-        self.assertEqual((D("1.2"), True), locale.toDecimal(QString("1.2")), msg="1 1/5 decimal #2" )	# 1 1/5
-        self.assertEqual( (D("6.375"), True), locale.toDecimal("110.011", 2), msg="4+2+1/4+1/8 binary" )
-        self.assertEqual( "12.00", locale.toString(decimal.Decimal("12").quantize(D('0.01'))), msg="12 dollars" )
-        self.assertEqual( "3,379.70", locale.toString(decimal.Decimal("3379.7").quantize(D('0.01'))) , msg="rubbles" )
-        self.assertEqual( "636.40", locale.toString(decimal.Decimal("636.4").quantize(D('0.01'))), msg= "cny" )
-        self.assertEqual( "67.56", locale.toString(decimal.Decimal("67.56")), msg= "GBP" )
-        self.assertEqual( "103.00", locale.toString(decimal.Decimal("103").quantize(D('0.01'))), msg= "USD" )
-        self.assertEqual( "1,000,000", locale.toString(decimal.Decimal(10)**6), msg= "1 million" )
+        self.assertEqual( (decimal.Decimal("0.3125"), True), us_locale.toDecimal("0x0.5"), msg="5/16 hex #1" ) # 5/16
+        self.assertEqual( (decimal.Decimal("0.3125"), True), us_locale.toDecimal("0.5", 16), msg="5/16 hex #2" ) # 5/16
+        self.assertEqual( (D("1.25"), True), us_locale.toDecimal("01.2"), msg="1 1/4 octal #1" )  # 1 1/4
+        self.assertEqual( (D("1.25"), True), us_locale.toDecimal("1.2", 8), msg="1 1/4 octal #2" )  # 1 1/4
+        self.assertEqual( (D("1.2"), True), us_locale.toDecimal(QString("01.2"), 10), msg="1 1/5 decimal #1" )	# 1 1/5
+        self.assertEqual((D("1.2"), True), us_locale.toDecimal(QString("1.2")), msg="1 1/5 decimal #2" )	# 1 1/5
+        self.assertEqual( (D("6.375"), True), us_locale.toDecimal("110.011", 2), msg="4+2+1/4+1/8 binary" )
+        self.assertEqual( "12.00", us_locale.toString(decimal.Decimal("12").quantize(D('0.01'))), msg="12 dollars" )
+        self.assertEqual( "3,379.70", us_locale.toString(decimal.Decimal("3379.7").quantize(D('0.01'))) , msg="rubbles" )
+        self.assertEqual( "636.40", us_locale.toString(decimal.Decimal("636.4").quantize(D('0.01'))), msg= "cny" )
+        self.assertEqual( "67.56", us_locale.toString(decimal.Decimal("67.56")), msg= "GBP" )
+        self.assertEqual( "103.00", us_locale.toString(decimal.Decimal("103").quantize(D('0.01'))), msg= "USD" )
+        self.assertEqual( "1,000,000", us_locale.toString(decimal.Decimal(10)**6), msg= "1 million" )
         context.prec = 30
         decimal.setcontext(context)
-        self.assertEqual( "0.333,33", locale.toString((decimal.Decimal("1")/3).quantize(D('0.00001'))) , msg= "1/3" )
-        self.assertEqual( "0.50", locale.toString(decimal.Decimal("1").quantize(D('0.01'))/2), msg= "1/2" )
+        self.assertEqual( "0.333,33", us_locale.toString((decimal.Decimal("1")/3).quantize(D('0.00001'))) , msg= "1/3" )
+        self.assertEqual( "0.50", us_locale.toString(decimal.Decimal("1").quantize(D('0.01'))/2), msg= "1/2" )
         #
         #
         #	print "0.003,2 tests as valid: good."
         validator = CryptoCurrencyValidator(8, 8, True)
-        validator.setLocale( IQLocale("US") )
+        validator.setLocale( IQLocale("en_US") )
         
         
         
@@ -195,7 +195,7 @@ class TestNumericFormating(unittest.TestCase):
         self.assertEqual( QString(u'\u0663\u066b\u0661\u0664\u0661\u066c\u0666'), egyptian.toString( decimal.Decimal('3.1416') ) , msg= "Egyptian PI 5 digits" )
         
         spacing_validator = CryptoCurrencyValidator(8, 8, True)
-        spacing_validator.setLocale( IQLocale("US") )
+        spacing_validator.setLocale( us_locale )
         self.validator = spacing_validator
         self.name = 'spaced'
         spaced_test_set = [  [["1", 1], ["         1", QValidator.Acceptable, 10]], \
@@ -259,6 +259,39 @@ class TestConversion(unittest.TestCase):
         self.assertEqual( (60000, True), locale.toUShort('60,000', 10), msg = "big value to ushort")
 	self.assertEqual( (2000000, True), locale.toInt('2,000,000', 10), msg = "big int value to int")
 	self.assertEqual( (4000000, True), locale.toUInt('4,000,000', 10), msg = "big uint value to int")
+	
+class TestDefault(unittest.TestCase):
+    def test_all(self):
+    	system_locale = IQLocale.system()
+    	
+    	initial_default_locale = IQLocale()
+    	
+    	self.assertEqual(system_locale, initial_default_locale, msg = "IQLocales are by default system()")
+    	
+    	spanish_locale = IQLocale("es_ES")
+    	IQLocale.setDefault(spanish_locale)
+    	
+    	other_locale = IQLocale()
+    	self.assertEqual( (32000, True), other_locale.toShort('32.000'), msg = "toShort: Setting spanish as default locale means new locales will read correctly numbers as they are in Spain.")
+    	
+    	self.assertEqual( ( D('1.234567'), True ),  other_locale.toDecimal('1,234.567'),
+    	    msg = "toDecimal: Setting spanish as default locale means new locales will read correctly numbers as they are in Spain." )
+    	
+    	
+    	long_decimal = D('12345678.12345678')
+    	self.assertEqual( spanish_locale.toString(long_decimal), other_locale.toString(long_decimal), msg = "toString(decimal): Setting spanish as default locale means new locales will produce strings like   they are produced by the spanish locale." + str(spanish_locale.toString(long_decimal)))
+    	
+    	short_integer = 31440212
+    	self.assertEqual(spanish_locale.toString(short_integer), other_locale.toString(short_integer), msg = "toString(short_integer): Setting spanish as default locale means new locales will produce strings like   they are produced by the spanish locale.")
+    	
+	IQLocale.setDefault(IQLocale.system())
+	
+	new_system_locale = IQLocale()
+	self.assertEqual( system_locale.toString(long_decimal), new_system_locale.toString(long_decimal), msg = "toString(decimal): Setting system as default locale means new locales will produce strings like they are produced by the system locale. Returned:" + str(new_system_locale.toString(long_decimal)))
+	
+	
+	
+	
 if __name__ == '__main__':
     unittest.main()
 
