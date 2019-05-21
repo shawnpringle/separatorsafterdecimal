@@ -9,3 +9,4 @@ v0.1.0rc1, 2014 Sep 6  -- KDE support
 from there. Added tests.  Fixed use of setDefault.  Fixed validator
 class for when groupSeparator is not a comma. 
 
+v0.1.0rc2,  2019 May 17 -- Updated to use Python 3.7 and PyQt5

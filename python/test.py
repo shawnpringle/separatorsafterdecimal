@@ -1,11 +1,13 @@
 from qsdn import QSDNLocale as IQLocale
-from qsdn import QSDNNumericValidator as CryptoCurrencyValidator
+from qsdn import QSDNNumericValidator as NumberValidator
+from qsdn import QSDNLimitedNumericValidator as CryptoCurrencyValidator
 import unittest
 from decimal import Decimal as D
 import decimal
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-import sys
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+
+
 
 class NumberOption(unittest.TestCase):
     def setUp(self):
@@ -13,11 +15,11 @@ class NumberOption(unittest.TestCase):
         self.rc_locale.setNumberOptions( QLocale.NumberOptions(QLocale.RejectGroupSeparator) )
         self.oc_locale = IQLocale()
         self.oc_locale.setNumberOptions( QLocale.NumberOptions(QLocale.OmitGroupSeparator) )
-        
+
     def test_noOption(self):
         self.assertFalse(self.rc_locale is self.oc_locale)
         default_locale = IQLocale()
-        self.assertFalse( default_locale.numberOptions() == QLocale.NumberOptions(QLocale.OmitGroupSeparator) )
+        self.assertEqual(default_locale, IQLocale.system())
         self.assertFalse( default_locale.numberOptions() == QLocale.NumberOptions(QLocale.RejectGroupSeparator) )
         self.assertNotEqual(QLocale.OmitGroupSeparator, QLocale.RejectGroupSeparator)
         self.assertFalse( default_locale.numberOptions() & QLocale.NumberOptions(QLocale.RejectGroupSeparator) == QLocale.NumberOptions(QLocale.RejectGroupSeparator) )
@@ -34,264 +36,475 @@ class NumberOption(unittest.TestCase):
         self.assertEqual(self.oc_locale.numberOptions() & QLocale.NumberOptions(QLocale.OmitGroupSeparator), QLocale.NumberOptions(QLocale.OmitGroupSeparator))
         self.assertNotEqual(self.oc_locale.numberOptions() & QLocale.RejectGroupSeparator, QLocale.RejectGroupSeparator)
 
-def test_data_group(self, name, validator, test_set):
-    	TESTINPUT=0
-    	EXPECTED=1    	
-        for test_case in test_set:
-            modified_string = QString(test_case[TESTINPUT][0])
-            (status, pos) = validator.validate(modified_string, test_case[TESTINPUT][1])
-	    if status == QValidator.Invalid:
-		self.assertEqual( test_case[EXPECTED][1], status, name + test_case[TESTINPUT][0] + '=>' + test_case[EXPECTED][0] + ' (status == QValidator.Invalid)')
-	    elif status == QValidator.Intermediate:
-		self.assertEqual( test_case[EXPECTED][1], status, name + test_case[TESTINPUT][0] + '=>' + test_case[EXPECTED][0] + ' (status == QValidator.Intermediate)')
-	    else:
-		self.assertEqual( test_case[EXPECTED][1], status, name + test_case[TESTINPUT][0] + '=>' + test_case[EXPECTED][0] + ' (status == QValidator.Acceptable)')
-	    if test_case[EXPECTED][1] == QValidator.Acceptable and status == QValidator.Acceptable:
-	    	if pos != test_case[EXPECTED][2]: 
-	    	    exp_pos = test_case[EXPECTED][2] 
-	    	    print ''
-	    	    print str(test_case[EXPECTED][0])
-	    	    if exp_pos < pos:
-			print exp_pos * ' ' + '^' + (pos -exp_pos - 1) * ' ' + '^'
-			print exp_pos * ' ' + '+-- expected '
-			print pos * ' ' +  '+-- actual pos'
-		    else:
-			print pos * ' ' + '^' + (exp_pos - pos - 1) * ' ' + '^'
-			print exp_pos * ' ' + '+-- expected '
-			print pos * ' ' +  '+-- actual pos'
-		    self.assertTrue(False, ' (pos was not expected)')
-		self.assertEqual( test_case[EXPECTED][0], modified_string, name + str(test_case[TESTINPUT][0]) + '=>' + str(test_case[EXPECTED][0]) + ' (string)' )
-    	
 
+class TestNumericValidator(unittest.TestCase):
+	def setUp(self):
+		self.us_locale = IQLocale("en_US")
+		self.validator = NumberValidator()
+		self.validator.setLocale( self.us_locale )
+		self.validate_strings = [ 'QValidator.Invalid', 'QValidator.Intermediate', 'QValidator.Acceptable' ]
 
+		
+	def test_validator_0(self):
+		(status, result_string, pos) = self.validator.validate("", 0)
+		self.assertEqual( "QValidator.Intermediate", self.validate_strings[status], msg="Validate validate empty string #0" )
+	
+	def test_validator_1(self):
+		(status, result_string, pos) = self.validator.validate("0.0034", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.003,4", result_string)
+	def test_validator_2(self):
+		(status, result_string, pos) = self.validator.validate("0.001,423", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.001,423", result_string)
+	def test_validator_3(self):
+		(status, result_string, pos) = self.validator.validate("0.003,412,3", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.003,412,3", result_string)
+	def test_validator_123456789(self):
+		(status, result_string, pos) = self.validator.validate("123456789", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("123,456,789", result_string)
+	def test_validator_5(self):
+		(status, result_string, pos) = self.validator.validate("0.013410", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.013,410", result_string)
+	def test_validator_6(self):
+		(status, result_string, pos) = self.validator.validate("0.123,", 0)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("0.123,", result_string)
+	def test_validator_7(self):
+		(status, result_string, pos) = self.validator.validate(".42", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.42", result_string)
+	def test_validator_doubledot(self):
+		(status, result_string, pos) = self.validator.validate("0123.12.3", 0)
+		self.assertEqual("QValidator.Invalid", self.validate_strings[status])
+
+class CryptoCurencyUnspacedValidator(unittest.TestCase):
+	def setUp(self):
+		self.validator = CryptoCurrencyValidator(8, 8, False)
+		self.validator.setLocale( IQLocale("en_US") )
+		self.validate_strings = [ 'QValidator.Invalid', 'QValidator.Intermediate', 'QValidator.Acceptable' ]
+
+	def test_validate_00034(self):
+		(status, result_string, pos) = self.validator.validate("0.0034", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.003,4", result_string)
+
+	def test_validate_0001423(self):
+		(status, result_string, pos) = self.validator.validate("0.001,423", 0)
+		self.assertEqual(("QValidator.Acceptable", QValidator.Acceptable, "0.001,423"), 
+			(self.validate_strings[status], status, result_string))
+	def test_validate_00034123(self):
+		(status, result_string, pos) = self.validator.validate("0.003,412,3", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.003,412,3", result_string)
+
+	def test_validate_123456789(self):
+		(status, result_string, pos) = self.validator.validate("123456789", 0)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("123,456,789", result_string)
+
+	def test_validate_0013410(self):
+		(status, result_string, pos) = self.validator.validate("0.013410", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.013,410", result_string)
+
+	def test_validate_0123(self):
+		(status, result_string, pos) = self.validator.validate("0.123,", 0)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("0.123,", result_string)
+
+	def test_validate_042(self):
+		(status, result_string, pos) = self.validator.validate(".42", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.42", result_string)
+
+	def test_validate_0123123(self):
+		(status, result_string, pos) = self.validator.validate("0123.12.3", 0)
+		self.assertEqual("QValidator.Invalid", self.validate_strings[status])
+		
+	def test_validate_1(self):
+		(status, result_string, pos) = self.validator.validate("1", 1)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("1", result_string)
+		self.assertEqual(1, pos)
+
+	def test_validate_17(self):
+		(status, result_string, pos) = self.validator.validate("17", 2)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("17", result_string)
+		self.assertEqual(2, pos)
+
+	def test_validate_17(self):
+		(status, result_string, pos) = self.validator.validate("17,", 3)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("17,", result_string)
+		self.assertEqual(3, pos)
+
+	def test_validate_177(self):
+		(status, result_string, pos) = self.validator.validate("177", 3)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("177", result_string)
+		self.assertEqual(3, pos)
+
+	def test_validate_177(self):
+		(status, result_string, pos) = self.validator.validate("177,", 4)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("177,", result_string)
+		self.assertEqual(4, pos)
+
+	def test_validate_1777(self):
+		(status, result_string, pos) = self.validator.validate("1777", 4)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("1,777", result_string)
+		self.assertEqual(5, pos)
+
+	def test_validate_17772(self):
+		(status, result_string, pos) = self.validator.validate("1,7772", 6)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("17,772", result_string)
+		self.assertEqual(6, pos)
+
+	def test_validate_177721(self):
+		(status, result_string, pos) = self.validator.validate("17,7721", 7)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("177,721", result_string)
+		self.assertEqual(7, pos)
+
+	def test_validate_1777216(self):
+		(status, result_string, pos) = self.validator.validate("177,7216", 8)
+		self.assertEqual("1,777,216", result_string)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(9, pos)
+
+	def test_validate_23456789(self):
+		(status, result_string, pos) = self.validator.validate("23456789", 4)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("23,456,789", result_string)
+		self.assertEqual(5, pos)
+
+	def test_validate_0013410(self):
+		(status, result_string, pos) = self.validator.validate("0.013410", 7)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.013,410", result_string)
+		self.assertEqual(8, pos)
+
+	def test_validate_0000000001(self):
+		(status, result_string, pos) = self.validator.validate("0.000,000,001", 14)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("0.000,000,001", result_string)
+		self.assertEqual(14, pos)
+
+	def test_validate_0000000000001(self):
+		(status, result_string, pos) = self.validator.validate("0.000,000,000,001", 18)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("0.000,000,000,001", result_string)
+		self.assertEqual(18, pos)
+
+	def test_validate_100000000(self):
+		(status, result_string, pos) = self.validator.validate("10,000,0000", 11)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("100,000,000", result_string)
+		self.assertEqual(11, pos)
+
+	def test_validate_00034(self):
+		(status, result_string, pos) = self.validator.validate("0.0034", 2)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.003,4", result_string)
+		self.assertEqual(2, pos)
+
+	def test_validate_1(self):
+		(status, result_string, pos) = self.validator.validate("1", 1)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("1", result_string)
+		self.assertEqual(1, pos)
+
+	def test_validate_0(self):
+		(status, result_string, pos) = self.validator.validate("0", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0", result_string)
+		self.assertEqual(0, pos)
+
+	def test_validate_23124(self):
+		(status, result_string, pos) = self.validator.validate("23124", 3)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("23,124", result_string)
+		self.assertEqual(4, pos)
+
+	def test_validate_symbols(self):
+		(status, result_string, pos) = self.validator.validate("%!@", 2)
+		self.assertEqual("QValidator.Invalid", self.validate_strings[status])
+
+	def test_validate_00032(self):
+		(status, result_string, pos) = self.validator.validate("0.003,2", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("0.003,2", result_string)
+		self.assertEqual(0, pos)
+
+	def test_validate_Hello(self):
+		(status, result_string, pos) = self.validator.validate("Hello", 2)
+		self.assertEqual("QValidator.Invalid", self.validate_strings[status])
+
+		
 class TestNumericFormating(unittest.TestCase):
-    
-    def test_all(self):  
-    	TESTINPUT=0
-    	EXPECTED=1    	
-        
+    def setUp(self):
+        self.us_locale = IQLocale("en_US")
+
+    def test_decimal_american_english(self):  
+        TESTINPUT=0
+        EXPECTED=1            
 
         context = decimal.getcontext()
         context.prec = 8+7
         decimal.setcontext(context)
-        tests = ( (decimal.Decimal("43112279.75467"), "43,112,279.754,67"), (decimal.Decimal("0.0101020204"), "0.010,102,020,4"),
-            (decimal.Decimal("0.00000001"), "0.000,000,01")
+        tests = ( (D("43112279.75467"), "43,112,279.754,67"), (D("0.0101020204"), "0.010,102,020,4"),
+            (D("0.00000001"), "0.000,000,01")
             )
-        us_locale = IQLocale("en_US")
-        QLocale.setDefault(us_locale)
         verbose = False
         for c in tests:
-            self.assertEqual( QString(c[1]), us_locale.toString(c[0]), msg="Test case %s" % c[1] )
+            self.assertEqual( str(c[1]), self.us_locale.toString(c[0]), msg="Test case %s" % c[1] )
+            self.assertEqual( (c[0], True), self.us_locale.toDecimal(c[1], 10), msg="Test case US locale parsing %s" % c[1] )
         
-        new_string = '0xFF0'
- 	(value, ok) = us_locale.toDecimal(new_string)
-	self.assertEqual( new_string, '0xFF0', msg = 'numbers passed are not modified')
-	a_string = QString('      100')
-	another_string = QString(a_string)
-	us_locale.toDecimal(a_string)
-	self.assertFalse( a_string is another_string)
-	self.assertEqual( a_string, another_string, msg = "toDecimal doesn't modify string")
-	self.assertEqual( ok,    True,  msg = "hex numbers without commas parse successfully")
-	self.assertEqual( value, 0xFF0, msg = "hex numbers without commas parse correctly")
-	(value, ok) = us_locale.toDecimal( QString("") )
-	self.assertEqual( ok, False )
-	(value, ok) = us_locale.toDecimal( QString("The cat came back ") )
-	self.assertEqual( ok, False )
-
-
-        # no commas:
-        us_locale_no_comma = IQLocale("US")
-        us_locale_no_comma.setNumberOptions( QLocale.NumberOptions(QLocale.OmitGroupSeparator) )
-        for c in tests:
-            self.assertEqual( QString(c[1]).remove(','), us_locale_no_comma.toString(c[0]), 
-                msg ="Test case %s" % c[1] )
-        
-        if verbose:
-            try:
-                spanishlocale = IQLocale("es_ES")
-                print "Using %s us_locale" % spanishlocale.name()
-                for c in tests:
-                    print "The value %s is %s" % (c[1], spanishlocale.toString(c[0]))
-            except:
-                print "Could not get a Spanish us_locale to show you what they look like.  too bad."
-                
-            try:
-                koreanlocale = IQLocale("kr")
-                print "Using %s us_locale" % koreanlocale.name()
-                for c in tests:
-                    print "The value %s is %s" % (c[1], koreanlocale.toString(c[0]))
-            except:
-                print "Could not get a Korean us_locale to show you what they look like.  too bad."
-                
-            try:
-                clocale = IQLocale("C")
-                print "Using %s us_locale" % clocale.name()
-                for c in tests:
-                    print "The value %s is %s" % (c[1], clocale.toString(c[0]))
-            except:
-                print "Could not get the C us_locale to show you what they look like.  too bad."
-            
-            
-            print "The us_locale your system is using is %s" % QLocale.system().name()
-            
-        (d, good) = us_locale.toDecimal(QString("7,423,231,123"), 10)
-        self.assertEqual( True, good, msg="7 billion #1" )
-        self.assertEqual( decimal.Decimal("7423231123"), d , msg="7 billion #2" )
-        self.assertEqual( "7,423,231,123", us_locale.toString(d) , msg="7 billion #3" )
-        
-        (d, good) = us_locale.toDecimal(QString("0xB,ADF,00D"))
+    def test_hex(self):
+        self.us_locale = IQLocale("en_US")
+        TESTINPUT=0
+        EXPECTED=1            
+        (d, good) = self.us_locale.toDecimal("0xB,ADF,00D")
         self.assertEqual( True, good, msg="0xB,ADF,00D #1" )
-        self.assertEqual( decimal.Decimal("195948557"), d, msg="0xB,ADF,00D #2" )
-        self.assertEqual( (decimal.Decimal("0.3125"), True), us_locale.toDecimal("0x0.5"), msg="5/16 hex #1" ) # 5/16
-        self.assertEqual( (decimal.Decimal("0.3125"), True), us_locale.toDecimal("0.5", 16), msg="5/16 hex #2" ) # 5/16
-        self.assertEqual( (D("1.25"), True), us_locale.toDecimal("01.2"), msg="1 1/4 octal #1" )  # 1 1/4
-        self.assertEqual( (D("1.25"), True), us_locale.toDecimal("1.2", 8), msg="1 1/4 octal #2" )  # 1 1/4
-        self.assertEqual( (D("1.2"), True), us_locale.toDecimal(QString("01.2"), 10), msg="1 1/5 decimal #1" )	# 1 1/5
-        self.assertEqual((D("1.2"), True), us_locale.toDecimal(QString("1.2")), msg="1 1/5 decimal #2" )	# 1 1/5
-        self.assertEqual( (D("6.375"), True), us_locale.toDecimal("110.011", 2), msg="4+2+1/4+1/8 binary" )
-        self.assertEqual( "12.00", us_locale.toString(decimal.Decimal("12").quantize(D('0.01'))), msg="12 dollars" )
-        self.assertEqual( "3,379.70", us_locale.toString(decimal.Decimal("3379.7").quantize(D('0.01'))) , msg="rubbles" )
-        self.assertEqual( "636.40", us_locale.toString(decimal.Decimal("636.4").quantize(D('0.01'))), msg= "cny" )
-        self.assertEqual( "67.56", us_locale.toString(decimal.Decimal("67.56")), msg= "GBP" )
-        self.assertEqual( "103.00", us_locale.toString(decimal.Decimal("103").quantize(D('0.01'))), msg= "USD" )
-        self.assertEqual( "1,000,000", us_locale.toString(decimal.Decimal(10)**6), msg= "1 million" )
+        self.assertEqual( D("195948557"), d, msg="0xB,ADF,00D #2" )
+        new_string = '0xFF0'
+        (value, ok) = self.us_locale.toDecimal(new_string)
+        self.assertEqual( new_string, '0xFF0', msg = 'numbers passed are not modified')
+        a_string = str('      100')
+        self.assertEqual( ok,    True,  msg = "hex numbers without commas parse successfully")
+        self.assertEqual( value, 0xFF0, msg = "hex numbers without commas parse correctly")
+        
+    def test_nonsense(self):   
+        self.us_locale = IQLocale("en_US")
+        TESTINPUT=0
+        EXPECTED=1            
+        (value, ok) = self.us_locale.toDecimal( str("") )
+        self.assertEqual( ok, False )
+        (value, ok) = self.us_locale.toDecimal( str("The cat came back ") )
+        self.assertEqual( ok, False )
+
+
+    def test_spanish(self):
+        # European way of writing numbers style
+        tests = ( (D("43112279.75467"), "43.112.279,754.67"), (D("0.0101020204"), "0,010.102.020.4"),
+            (D("0.00000001"), "0,000.000.01")
+            )
+        spanishlocale = IQLocale("es_ES")
+        self.assertEqual(spanishlocale.name(), "es_ES")
+        for c in tests:
+            self.assertEqual( c[1], spanishlocale.toString(c[0]), msg="Test case spanish to String %s" % c[1] )
+            self.assertEqual( (c[0], True), spanishlocale.toDecimal(c[1], 10), msg="Test case spanish parsing %s" % c[1] )
+            
+                        
+    def test_c(self):
+        # C style values for tests
+        tests = ( (D("43112279.75467"), "43112279.75467"), (D("0.0101020204"), "0.0101020204"),
+            (D("0.00000001"), "0.00000001")
+            )                
+        clocale = IQLocale.c()
+        self.assertEqual(clocale.name(), "C")
+        for c in tests:
+            self.assertEqual( str(c[1]), clocale.toString(c[0]), msg="Test case %s" % c[1] )
+            self.assertEqual( (c[0], True), clocale.toDecimal(c[1], 10), msg="Test case C parsing %s" % c[1] )
+        IQLocale.setDefault(IQLocale.system())
+        
+    def test_egyptian(self):
+        egyptian = IQLocale( QLocale( QLocale.Arabic, QLocale.Egypt ) )
+        self.assertEqual( ('\u0663\u066b\u0661\u0664\u0661\u066c\u0666'), egyptian.toString( D('3.1416') ) , msg= "Egyptian PI 5 digits" )
+
+    def test_otherbases(self):
+        self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0x0.5"), msg="5/16 hex #1" ) # 5/16
+        self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0.5", 16), msg="5/16 hex #2" ) # 5/16
+        self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("01.2"), msg="1 1/4 octal #1" )  # 1 1/4
+        self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("1.2", 8), msg="1 1/4 octal #2" )  # 1 1/4
+        self.assertEqual( (D("1.2"), True), self.us_locale.toDecimal(str("01.2"), 10), msg="1 1/5 decimal #1" )        # 1 1/5
+        self.assertEqual((D("1.2"), True), self.us_locale.toDecimal(str("1.2")), msg="1 1/5 decimal #2" )        # 1 1/5
+        self.assertEqual( (D("6.375"), True), self.us_locale.toDecimal("110.011", 2), msg="4+2+1/4+1/8 binary" )
+    	
+
+    def test_quantized(self):
+        self.assertEqual( "12.00", self.us_locale.toString(D("12").quantize(D('0.01'))), msg="12 dollars" )
+        self.assertEqual( "3,379.70", self.us_locale.toString(D("3379.7").quantize(D('0.01'))) , msg="rubbles" )
+        self.assertEqual( "636.40", self.us_locale.toString(D("636.4").quantize(D('0.01'))), msg= "cny" )
+        self.assertEqual( "67.56", self.us_locale.toString(D("67.56")), msg= "GBP" )
+        self.assertEqual( "103.00", self.us_locale.toString(D("103").quantize(D('0.01'))), msg= "USD" )
+        self.assertEqual( "1,000,000", self.us_locale.toString(D(10)**6), msg= "1 million" )
+        context = decimal.getcontext()
         context.prec = 30
         decimal.setcontext(context)
-        self.assertEqual( "0.333,33", us_locale.toString((decimal.Decimal("1")/3).quantize(D('0.00001'))) , msg= "1/3" )
-        self.assertEqual( "0.50", us_locale.toString(decimal.Decimal("1").quantize(D('0.01'))/2), msg= "1/2" )
-        #
-        #
-        #	print "0.003,2 tests as valid: good."
-        validator = CryptoCurrencyValidator(8, 8, True)
-        validator.setLocale( IQLocale("en_US") )
-        
-        
-        
-        validator_test_data =  [  \
-                ((QValidator.Acceptable, "0.003,4"), "0.0034"), \
-                ((QValidator.Acceptable, "0.001,423"), "0.001,423"), \
-        ((QValidator.Acceptable, "0.003,412,3"), "0.003,412,3"), \
-        ((QValidator.Intermediate, "123,456,789"), "123456789"), \
-        ((QValidator.Acceptable, "0.013,410"), "0.013410"), \
-        ((QValidator.Intermediate, "0.123,"), "0.123,"), \
-        ((QValidator.Acceptable, "0.42"), ".42"),
-        ((QValidator.Invalid, "0123.12.3"), "0123.12.3") ]
-        
-        validate_strings = [ 'QValidator.Invalid', 'QValidator.Intermediate', 'QValidator.Acceptable' ]
-        (status, pos) = validator.validate(QString(""), 0)
-        self.assertEqual( QValidator.Intermediate, status, msg="Validate validate partial string #0" )
-        for test_case_type in validator_test_data:
-            result_string = QString(test_case_type[1])
-            (status, pos) = validator.validate(result_string, 0)
-            if status == QValidator.Acceptable:
-            	if status != test_case_type[0][0]:
-            	    print "status is %s.  it should be %s " % (validate_strings[status], validate_strings[ test_case_type[0][0] ] )
-		    self.assertTrue( False, msg=test_case_type[1] + "=>" + test_case_type[0][1] + " status" )
-		# print "status is ", status == QValidator.Acceptable
-		if test_case_type[0][0] == QValidator.Acceptable:
-		    self.assertEqual( test_case_type[0][1], result_string.trimmed(), msg=test_case_type[1] + "=>" + test_case_type[0][1] + " string" )
+        self.assertEqual( "0.333,33", self.us_locale.toString((D("1")/3).quantize(D('0.00001'))) , msg= "1/3" )
+        self.assertEqual( "0.50", self.us_locale.toString(D("1").quantize(D('0.01'))/2), msg= "1/2" )
                 
-        egyptian = IQLocale( QLocale( QLocale.Arabic, QLocale.Egypt ) )
-        self.assertEqual( QString(u'\u0663\u066b\u0661\u0664\u0661\u066c\u0666'), egyptian.toString( decimal.Decimal('3.1416') ) , msg= "Egyptian PI 5 digits" )
-        
-        spacing_validator = CryptoCurrencyValidator(8, 8, True)
-        spacing_validator.setLocale( us_locale )
-        self.validator = spacing_validator
-        self.name = 'spaced'
-        spaced_test_set = [  [["1", 1], ["         1", QValidator.Acceptable, 10]], \
-                      [[9*' '+"17", 11], [8*' '+"17", QValidator.Acceptable, 10]],\
-                      [[8*' '+"17,", 11], [8*' '+"17,", QValidator.Intermediate, 11]],\
-                      [[8*' '+"177", 11], [7*' '+"177", QValidator.Acceptable, 10]], \
-                      [[7*' '+"177,", 11], [7*' '+"177,", QValidator.Intermediate, 11]], \
-                      [[7*' '+"1777", 11], [5*' '+"1,777", QValidator.Acceptable, 10]], \
-                      [[5*' '+"1,7772", 11], [4*' '+"17,772", QValidator.Acceptable, 10]], \
-                      [["    17,7721", 11], [3*' '+"177,721", QValidator.Acceptable, 10]], \
-                  [["   177,7216", 11], [" 1,777,216", QValidator.Acceptable, 10]], \
-                  [["123456789", 4], ["123,456,789", QValidator.Intermediate, 5]], \
-                  [["0.013410", 7], [9*' '+"0.013,410", QValidator.Acceptable, 17]], \
-                  [["0.0034", 2], [9*' '+"0.003,4", QValidator.Acceptable, 11]], \
-                  [["1", 0], [' '*9+"1", QValidator.Acceptable, 0]], \
-                  [["0", 1], [9*' '+"0", QValidator.Acceptable, 10]], \
-                  [['23124', 3], ["    23,124", QValidator.Acceptable, 8]], \
-                  [['%!@', 2], ["%!@", QValidator.Invalid, 2]], \
-                  [['        0.471,400', 8], ['         0.471,400', QValidator.Acceptable, 9]], \
-                  [['11,213,421.000,1', 0], ['11,213,421.000,1', QValidator.Acceptable, 0]], \
-                  [['        100', 11], ['       100', QValidator.Acceptable, 10]], \
-                  [[' 1,000,000', 9], [' 1,000,000', QValidator.Acceptable, 9]], \
-                  [['Hello', 2], ['Hello', QValidator.Invalid, 2] ] \
-        ]
-        self.test_set = spaced_test_set
-	test_data_group(self, self.name, self.validator, self.test_set)                  
+                                            
+class TestSpacedCryptoCurrencyValidator(unittest.TestCase):
+	def setUp(self):
+		us_locale = IQLocale("en_US")
+		spacing_validator = CryptoCurrencyValidator(8, 8, True)
+		spacing_validator.setLocale( us_locale )
+		self.validate_strings = [ 'QValidator.Invalid', 'QValidator.Intermediate', 'QValidator.Acceptable' ]
+		self.validator = spacing_validator
+    
+	def test_cryptocurrency_validator_Hello(self):
+		(status, result_string, pos) = self.validator.validate("Hello", 2)
+		self.assertEqual("QValidator.Invalid", self.validate_strings[status])
 
-        no_spaces = CryptoCurrencyValidator(8, 8, False)
-        no_spaces.setLocale( IQLocale("US") )
-        test_data_group(self, 'no spaces', no_spaces, [  [["1", 1], ["1", QValidator.Acceptable, 1]], \
-        [["17", 2], ["17", QValidator.Acceptable, 2]],\
-        [["17,", 3], ["17,", QValidator.Intermediate, 3]],\
-        [["177", 3], ["177", QValidator.Acceptable, 3]], \
-        [["177,", 4], ["177,", QValidator.Intermediate, 4]], \
-        [["1777", 4], ["1,777", QValidator.Acceptable, 5]], \
-        [["1,7772", 6], ["17,772", QValidator.Acceptable, 6]], \
-        [["17,7721", 7], ["177,721", QValidator.Acceptable, 7]], \
-        [["177,7216", 8], ["1,777,216", QValidator.Acceptable, 9]], \
-        [["23456789", 4], ["23,456,789", QValidator.Acceptable, 5]], \
-        [["0.013410", 7], ["0.013,410", QValidator.Acceptable, 8]], \
-        [["0.000,000,001", 14], ["0.000,000,001", QValidator.Intermediate, 14]], \
-        [["0.000,000,000,001", 18], ["0.000,000,000.001", QValidator.Intermediate, 18]], \
-        [["10,000,0000", 12], ["100,000,000", QValidator.Intermediate, 12]], \
-        [["0.0034", 2], ["0.003,4", QValidator.Acceptable, 2]], \
-        [["1", 1], ["1", QValidator.Acceptable, 1]], \
-        [["0", 0], ["0", QValidator.Acceptable, 0]], \
-        [['23124', 3], ["23,124", QValidator.Acceptable, 4]], \
-        [['%!@', 2], ["%!@", QValidator.Invalid, 2]], \
-        [["0.003,2", 0], ["0.003,2", QValidator.Acceptable, 0]], \
-        [['Hello', 2], ['Hello', QValidator.Invalid, 2] ] \
-          ])
+	def test_cryptocurrency_validator_1(self):
+		(status, result_string, pos) = self.validator.validate("1", 1)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("         1", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_17(self):
+		(status, result_string, pos) = self.validator.validate("         17", 11)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("        17", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_17(self):
+		(status, result_string, pos) = self.validator.validate("        17,", 11)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual(("       17,", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_177(self):
+		(status, result_string, pos) = self.validator.validate("        177", 11)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("       177", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_177(self):
+		(status, result_string, pos) = self.validator.validate("       177,", 11)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual(("      177,", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_1777(self):
+		(status, result_string, pos) = self.validator.validate("       1777", 11)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("     1,777", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_17772(self):
+		(status, result_string, pos) = self.validator.validate("     1,7772", 11)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("    17,772", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_177721(self):
+		(status, result_string, pos) = self.validator.validate("    17,7721", 11)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("   177,721", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_1777216(self):
+		(status, result_string, pos) = self.validator.validate("   177,7216", 11)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual((" 1,777,216", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_123456789(self):
+		(status, result_string, pos) = self.validator.validate("123456789", 4)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual(("123,456,789", 5), (result_string, pos))
+
+	def test_cryptocurrency_validator_0013410(self):
+		(status, result_string, pos) = self.validator.validate("0.013410", 7)
+		self.assertEqual(("QValidator.Acceptable","         0.013,410", 17), 
+			(self.validate_strings[status],result_string, pos))
+
+	def test_cryptocurrency_validator_00034(self):
+		(status, result_string, pos) = self.validator.validate("0.0034", 2)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("         0.003,4", 11), (result_string, pos))
+
+	def test_cryptocurrency_validator_1(self):
+		(status, result_string, pos) = self.validator.validate("1", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("         1", 0), (result_string, pos))
+
+	def test_cryptocurrency_validator_0(self):
+		(status, result_string, pos) = self.validator.validate("0", 1)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("         0", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_23124(self):
+		(status, result_string, pos) = self.validator.validate("23124", 3)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("    23,124", 8), (result_string, pos))
+
+	def test_cryptocurrency_validator_symbol(self):
+		(status, result_string, pos) = self.validator.validate("%!@", 2)
+		self.assertEqual("QValidator.Invalid", self.validate_strings[status])
+
+	def test_cryptocurrency_validator_0471400(self):
+		(status, result_string, pos) = self.validator.validate("        0.471,400", 8)
+		self.assertEqual(("QValidator.Acceptable","         0.471,400", 9), (self.validate_strings[status],result_string, pos))
+
+	def test_cryptocurrency_validator_112134210001(self):
+		(status, result_string, pos) = self.validator.validate("11,213,421.000,1", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("11,213,421.000,1", 0), (result_string, pos))
+
+	def test_cryptocurrency_validator_100(self):
+		(status, result_string, pos) = self.validator.validate("        100", 11)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("       100", 10), (result_string, pos))
+
+	def test_cryptocurrency_validator_1000000(self):
+		(status, result_string, pos) = self.validator.validate(" 1,000,000", 9)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual((" 1,000,000", 9), (result_string, pos))
+
+	def test_cryptocurrency_validator_Hello(self):
+		(status, result_string, pos) = self.validator.validate("Hello", 2)
+		self.assertEqual("QValidator.Invalid", self.validate_strings[status])	
 
 
-class TestConversion(unittest.TestCase):
+class TestParsing(unittest.TestCase):
     def test_all(self):
-    	locale = IQLocale('US')
-    	locale.toShort('321')
-    	self.assertEqual( (321, True) , locale.toShort('321', 10), msg = "tiny value to short")
-    	self.assertEqual( False, locale.toShort('70,000', 10)[1], msg = "value to to short is too long")
-	self.assertEqual( (32000, True), locale.toShort('32,000', 10), msg = "big value to short")
+        locale = IQLocale('US')
+        locale.toShort('321')
+        self.assertEqual( (321, True) , locale.toShort('321', 10), msg = "tiny value to short")
+        self.assertEqual( False, locale.toShort('70,000', 10)[1], msg = "value to to short is too long")
+        self.assertEqual( (32000, True), locale.toShort('32,000', 10), msg = "big value to short")
         self.assertEqual( (60000, True), locale.toUShort('60,000', 10), msg = "big value to ushort")
-	self.assertEqual( (2000000, True), locale.toInt('2,000,000', 10), msg = "big int value to int")
-	self.assertEqual( (4000000, True), locale.toUInt('4,000,000', 10), msg = "big uint value to int")
+        self.assertEqual( (2000000, True), locale.toInt('2,000,000', 10), msg = "big int value to int")
+        self.assertEqual( (4000000, True), locale.toUInt('4,000,000', 10), msg = "big uint value to int")
+        locale = IQLocale.c()
+        self.assertEqual( (321, True) , locale.toShort('321', 10), msg = "tiny value to short")
+        self.assertEqual( False, locale.toShort('70000', 10)[1], msg = "value to short is too long")
+        self.assertEqual( (32000, True), locale.toShort('32000', 10), msg = "big value to short")
+        self.assertEqual( (60000, True), locale.toUShort('60000', 10), msg = "big value to ushort")
+        self.assertEqual( (2000000, True), locale.toInt('2000000', 10), msg = "big int value to int")
+        self.assertEqual( (4000000, True), locale.toUInt('4000000', 10), msg = "big uint value to int")
+        
+class TestStatics(unittest.TestCase):
+	def setUp(self):
+		pass
 	
-class TestDefault(unittest.TestCase):
-    def test_all(self):
-    	system_locale = IQLocale.system()
-    	
-    	initial_default_locale = IQLocale()
-    	
-    	self.assertEqual(system_locale, initial_default_locale, msg = "IQLocales are by default system()")
-    	
-    	spanish_locale = IQLocale("es_ES")
-    	IQLocale.setDefault(spanish_locale)
-    	
-    	other_locale = IQLocale()
-    	self.assertEqual( (32000, True), other_locale.toShort('32.000'), msg = "toShort: Setting spanish as default locale means new locales will read correctly numbers as they are in Spain.")
-    	
-    	self.assertEqual( ( D('1.234567'), True ),  other_locale.toDecimal('1,234.567'),
-    	    msg = "toDecimal: Setting spanish as default locale means new locales will read correctly numbers as they are in Spain." )
-    	
-    	
-    	long_decimal = D('12345678.12345678')
-    	self.assertEqual( spanish_locale.toString(long_decimal), other_locale.toString(long_decimal), msg = "toString(decimal): Setting spanish as default locale means new locales will produce strings like   they are produced by the spanish locale." + str(spanish_locale.toString(long_decimal)))
-    	
-    	short_integer = 31440212
-    	self.assertEqual(spanish_locale.toString(short_integer), other_locale.toString(short_integer), msg = "toString(short_integer): Setting spanish as default locale means new locales will produce strings like   they are produced by the spanish locale.")
-    	
-	IQLocale.setDefault(IQLocale.system())
+	def test_system(self):
+		self.assertEqual(QLocale.system().name(), IQLocale.system().name(), "IQLocale and QLocale .system return locales with the same name")
 	
-	new_system_locale = IQLocale()
-	self.assertEqual( system_locale.toString(long_decimal), new_system_locale.toString(long_decimal), msg = "toString(decimal): Setting system as default locale means new locales will produce strings like they are produced by the system locale. Returned:" + str(new_system_locale.toString(long_decimal)))
-	
-	
-	
-	
+	def test_system_country(self):
+		self.assertEqual(QLocale.system().country(), IQLocale.system().country(), "IQLocale and QLocale .system return locales with the same country")
+
+	def test_system_lang(self):
+		self.assertEqual(QLocale.system().language(), IQLocale.system().language(), "IQLocale and QLocale .system return locales with the same language")
+
+	def test_c(self):
+		self.assertEqual(QLocale.c().name(), IQLocale.c().name(), "IQLocale and QLocale .c  return locales with the same name")
+
+	def test_c_country(self):
+		self.assertEqual(QLocale.c().country(), IQLocale.c().country(), "IQLocale and QLocale .c  return locales with the same country")
+
+	def test_c_lang(self):
+		self.assertEqual(QLocale.c().language(), IQLocale.c().language(), "IQLocale and QLocale .c  return locales with the same language")
+
+	def test_default(self):
+		self.assertEqual(QLocale().name(), IQLocale().name(), "IQLocale and QLocale default return locales with the same name")
+
+	def test_default_country(self):
+		self.assertEqual(QLocale().country(), IQLocale().country(), "IQLocale and QLocale default return locales with the same country")
+       
+       
 if __name__ == '__main__':
     unittest.main()
 
