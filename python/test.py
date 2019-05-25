@@ -104,7 +104,7 @@ class CryptoCurencyUnspacedValidator(unittest.TestCase):
 	def test_validate_123456789(self):
 		(status, result_string, pos) = self.validator.validate("123456789", 0)
 		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
-		self.assertEqual("123,456,789", result_string)
+		self.assertEqual("12,345,678", result_string)
 
 	def test_validate_0013410(self):
 		(status, result_string, pos) = self.validator.validate("0.013410", 0)
@@ -194,20 +194,30 @@ class CryptoCurencyUnspacedValidator(unittest.TestCase):
 	def test_validate_0000000001(self):
 		(status, result_string, pos) = self.validator.validate("0.000,000,001", 14)
 		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
-		self.assertEqual("0.000,000,001", result_string)
-		self.assertEqual(14, pos)
+		self.assertEqual("0.000,000,00", result_string)
+		self.assertEqual(12, pos)
 
 	def test_validate_0000000000001(self):
 		(status, result_string, pos) = self.validator.validate("0.000,000,000,001", 18)
 		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
-		self.assertEqual("0.000,000,000,001", result_string)
-		self.assertEqual(18, pos)
+		self.assertEqual("0.000,000,00", result_string)
+		self.assertEqual(12, pos)
 
-	def test_validate_100000000(self):
+	def test_validate_one_hundred_thousand_with_bad_comma(self):
+		(status, result_string, pos) = self.validator.validate("10,0000", 5)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("100,000", result_string)
+		self.assertEqual(5, pos)
+
+	def test_validate_one_hundred_million_with_bad_commas(self):
 		(status, result_string, pos) = self.validator.validate("10,000,0000", 11)
 		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
-		self.assertEqual("100,000,000", result_string)
-		self.assertEqual(11, pos)
+		self.assertEqual("10,000,000", result_string)
+		self.assertEqual(10, pos)
+		
+	def test_validate_one_hundred_millino_bitcoins(self):
+		(status, result_string, pos) = self.validator.validate("100,000,000", 11)
+		
 
 	def test_validate_00034(self):
 		(status, result_string, pos) = self.validator.validate("0.0034", 2)
@@ -403,7 +413,7 @@ class TestSpacedCryptoCurrencyValidator(unittest.TestCase):
 	def test_cryptocurrency_validator_123456789(self):
 		(status, result_string, pos) = self.validator.validate("123456789", 4)
 		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
-		self.assertEqual(("123,456,789", 5), (result_string, pos))
+		self.assertEqual(("12,345,678", 5), (result_string, pos))
 
 	def test_cryptocurrency_validator_0013410(self):
 		(status, result_string, pos) = self.validator.validate("0.013410", 7)

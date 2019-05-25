@@ -38,6 +38,7 @@
 # SDN stands for 'standard decimal notation'.  That is not 'normalized Scientific notation'.
 
 import re
+import traceback, sys
 from decimal import Decimal as D
 try:
 	from PyQt5.QtCore import *
@@ -379,7 +380,7 @@ class QSDNLocale(QLocale) :
 		
 	# return a double represented by the string s.
 	def toDouble(self, s, base = 0):
-			""" This creates a floating point representation of s.
+			""" Parses the string s and returns a floating point value whose string is s.
 			 
 			  It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 			  """
@@ -387,7 +388,7 @@ class QSDNLocale(QLocale) :
 			
 	# return a float represented by the string s.
 	def toFloat(self, s):
-		""" This creates a floating point representation of s.
+		""" Parses the string s and returns a floating point value whose string is s.
 		 
 		  It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		  """
@@ -400,6 +401,8 @@ class QSDNLocale(QLocale) :
 			
 	# return a int represented by the string s.
 	def toInt(self, s, base = 0):
+		""" Parses the string s and returns an integer value whose string is s.
+		"""
 		(ans, good) = self._toNumber(s, base, 0)
 		if good and int(ans) == ans:
 			return (ans, True)
@@ -409,7 +412,7 @@ class QSDNLocale(QLocale) :
    
 	# return a long represented by the string s.
 	def toLongLong(self, s, base = 0):
-		""" This creates a numeric representation of s.
+		""" Parses the string s and returns a floating point value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
@@ -425,7 +428,7 @@ class QSDNLocale(QLocale) :
 		return self._toNumber(s, base, 0)
 		
 	def toShort(self, s, base = 0):
-		""" This creates a numeric representation of s.
+		""" Parses the string s and returns a short value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
@@ -446,7 +449,7 @@ class QSDNLocale(QLocale) :
 		
 	# return a uint represented by the string s.
 	def toUInt(self, s, base = 0):
-		""" This creates a numeric representation of s.
+		""" Parses the string s and returns an unsigned integer value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
@@ -467,7 +470,7 @@ class QSDNLocale(QLocale) :
 
 	# return a ulonglong represented by the string s.
 	def toULongLong(self, s, base = 0):
-		""" This creates a numeric representation of s.
+		""" Parses the string s and returns an unsigned long long value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
@@ -488,7 +491,8 @@ class QSDNLocale(QLocale) :
 		
 	# return a ushort represented by the string s.
 	def toUShort(self, s, base = 0):
-		""" This creates a numeric representation of s.
+		""" Parses the string s and returns a unsigned long long value whose string is s.
+
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
@@ -526,116 +530,137 @@ class QSDNNumericValidator(QValidator) :
 
 	def __init__(self, parent = None) :
 		QValidator.__init__(self, parent)
-		# true if we use spaces for justifying the string.
-		#create signal
+		self._locale = None
 		self.setLocale( QSDNLocale() )
 		
+		
 	def validate(self, s, pos):
-		i = 0
-		digits_count      = 0
-		zero_code         = ord(self._locale.zeroDigit())
-		dp                = s.find(self._locale.decimalPoint())
-
-		debug = False
-		if s == "debugparty":
-			debug = True
-		if debug:
-			print("\t\tInside validator checking if %s is empty" % (s,))
-
-		if len(s) == 0:
-			return QValidator.Intermediate, s, 0
-
-		tail_comma    = (s[-1] == self._locale.groupSeparator())
-
-		if not (0 <= pos <= len(s)):
-			return QValidator.Invalid, s, pos
-
-		comma_after_cursor_pos = pos > 0 and s[pos-1] == self._locale.groupSeparator()
-
-		if dp == 0:
-			s = self._locale.zeroDigit() + s
-			dp += 1
-			if pos > 0:
-				pos += 1
-		
-		if dp == -1:
-			dp = len(s)
-		elif s[dp+1:].find(self._locale.decimalPoint()) != -1:
-			return QValidator.Invalid, s, pos
-			
-		if debug:
-			print("\t\tLeading zero added if needed to %s" % (s,))
-		# drop commas
-		i = 0
-		while i < len(s) and i < pos:
-			if s[i] == self._locale.groupSeparator():
-				s = s[:i] + s[i+1:]
-				pos -= 1
-				if i < dp:
-					dp = dp - 1
-			else:
-				i = i + 1
-		
-		while i < len(s):
-			if s[i] == self._locale.groupSeparator():
-				s = s[:i] + s[i+1:]		
-				if i < dp:
-					dp = dp - 1
-			else:
-				i = i + 1
-		if debug:
-			print("\t\tInside validator commas dropped %s" % (s,))
-
-		
-		# add commas back in
-		i = dp - 1
-		while i > 0:
-			if (1+dp-i) % 4 == 0:
-				s = s[:i] + self._locale.groupSeparator() + s[i:]
-				if i < pos:
-					pos += 1
-				dp = dp + 1
-			i = i - 1
-		
-		i = dp + 1
-		while i < len(s):
-			if (i-dp) % 4 == 0:
-				s = s[:i] + self._locale.groupSeparator() + s[i:]
-				if i < pos:
-					pos += 1
-			i = i + 1
-		
-		if comma_after_cursor_pos and (pos == len(s) or s[pos] == self._locale.groupSeparator()):
-			pos += 1
-			
-		if debug:
-			print("\t\tInside validator commas added back in %s" % (s,))
-			
-		if tail_comma:
-			s += self._locale.groupSeparator()
-		
-		if debug:
-			print("\t\tReturning if last character is a comma %s" % (s,))
-		if tail_comma:
-			return QValidator.Intermediate, s, pos
-		
-		if debug:
-			print("\t\tInside validator checking invalid characters %s" % (s,))
-		while i < pos and i < len(s):
-			if  0 <= ord(s[i]) - zero_code < 10:
-				digits_count += 1
-			elif not (s[i] == self._locale.groupSeparator()
-			or s[i] == self._locale.decimalPoint()):
+		try:
+			if s == "debugparty":
+				debug = True
+			debug             = False
+			old_s             = s
+			i                 = 0
+			digits_count      = 0
+			if debug:
+				print('starting validate()')
+			zero_code         = ord(self._locale.zeroDigit())
+			dp                = s.find(self._locale.decimalPoint())
+	
+			if debug:
+				print("\t\tInside validator checking if %s is empty" % (s,))
+	
+			if len(s) == 0:
+				return QValidator.Intermediate, s, 0
+	
+			tail_comma    = (s[-1] == self._locale.groupSeparator())
+	
+			if not (0 <= pos <= len(s)):
 				return QValidator.Invalid, s, pos
-			i = i + 1
-		
-		return QValidator.Acceptable, s, pos
+	
+			comma_after_cursor_pos = pos > 0 and s[pos-1] == self._locale.groupSeparator()
+	
+			if dp == 0:
+				s = self._locale.zeroDigit() + s
+				dp += 1
+				if pos > 0:
+					pos += 1
+			
+			if dp == -1:
+				dp = len(s)
+			elif s[dp+1:].find(self._locale.decimalPoint()) != -1:
+				return QValidator.Invalid, s, pos
+				
+			if debug:
+				print("\t\tLeading zero added if needed to %s" % (s,))
+			# drop commas
+			
+			i = 0
+			while i < len(s) and i < pos:
+				if s[i] == self._locale.groupSeparator():
+					s = s[:i] + s[i+1:]
+					pos -= 1
+					if i < dp:
+						dp = dp - 1
+				else:
+					i = i + 1
+			
+			while i < len(s):
+				if s[i] == self._locale.groupSeparator():
+					s = s[:i] + s[i+1:]		
+					if i < dp:
+						dp = dp - 1
+				else:
+					i = i + 1
+			if debug:
+				print("\t\tInside validator commas dropped %s" % (s,))
+	
+	
+			# drop leading zeroes unless the decimal point character is right after it.
+			while len(s) > 1 and s[0] == self._locale.zeroDigit() and s[1]!= self._locale.decimalPoint():
+				s = s[1:]
+			
+			
+			
+			# add commas back in
+			i = dp - 1
+			while i > 0:
+				if (1+dp-i) % 4 == 0:
+					s = s[:i] + self._locale.groupSeparator() + s[i:]
+					if i < pos:
+						pos += 1
+					dp = dp + 1
+				i = i - 1
+			
+			i = dp + 1
+			while i < len(s):
+				if (i-dp) % 4 == 0:
+					s = s[:i] + self._locale.groupSeparator() + s[i:]
+					if i < pos:
+						pos += 1
+				i = i + 1
+			
+			if old_s == s:
+				s = old_s
+			
+			if comma_after_cursor_pos and (pos == len(s) or s[pos] == self._locale.groupSeparator()):
+				pos += 1
+				
+			if debug:
+				print("\t\tInside validator commas added back in %s" % (s,))
+				
+			if tail_comma:
+				s += self._locale.groupSeparator()
+			
+			if debug:
+				print("\t\tReturning if last character is a comma %s" % (s,))
+			if tail_comma:
+				return QValidator.Intermediate, s, pos
+			
+			if debug:
+				print("\t\tInside validator checking invalid characters %s" % (s,))
+			while i < pos and i < len(s):
+				if  0 <= ord(s[i]) - zero_code < 10:
+					digits_count += 1
+				elif not (s[i] == self._locale.groupSeparator()
+				or s[i] == self._locale.decimalPoint()):
+					return QValidator.Invalid, s, pos
+				i = i + 1
+			
+			return QValidator.Acceptable, s, pos
+		except RecursionError as rerr:
+			traceback.print_exc(file=sys.stdout)
+			return QValidator.Invalid, s, pos
+		finally:
+			if debug:
+				print("leaving validate()")
 	
 	def setLocale(self, plocale):
 		""" Set the locale used by this Validator.  
 		"""
+		if plocale != self._locale:
+			self.localeSet.emit(plocale)
 		self._locale = plocale
-		self.localeSet.emit(plocale)
 
 	def locale(self):
 		""" get the locale used by this validator 
@@ -687,9 +712,12 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 		# true if we use spaces for justifying the string.
 		#create signal
 		self.numeric_only_validator = QSDNNumericValidator(parent)
-		self.spaced = use_space		
+		self.spaced = use_space
+		self.maximum_decimals = maximum_decimals
+		self.maximum_decamals = maximum_decamals
 		self.characters_before_decimalPoint = maximum_decamals * 4 // 3
 		self.characters_after_decimalPoint = maximum_decimals * 4 // 3
+		self._locale = None
 		self.setLocale( QSDNLocale() )
 	
 	def decimals(self):
@@ -698,6 +726,7 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 	
 	def setDecimals(self, i):
 		""" sets the number of decimal digits that should be allowed **after** the decimal point """
+		self.maximum_decimals = i
 		self.characters_after_decimalPoint = i * 4 // 3
 	
 	def decamals(self):
@@ -727,10 +756,13 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 			pos += self.characters_before_decimalPoint - decimalPoint_location if pos != 0 else 0
 		else:
 			needed_white = 0
-		import re
-		pattern = '^( *)'
-		m = re.search(pattern, s)
-		s = needed_white*' ' + s[len(m.group(1)):]
+		last_white = -1
+		while last_white+1 < len(s):
+			if s[last_white + 1] == ' ':
+				last_white += 1
+			else:
+				break
+		s = needed_white*' ' + s[last_white+1:]
 		dp = s.find(self._locale.decimalPoint())
 		if len(s) - (0 if dp == -1 else dp) > self.characters_before_decimalPoint:
 			raise NumberTooBig
@@ -738,35 +770,100 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 		if (len(s)-dp if dp >= 0 else 0) > self.characters_after_decimalPoint:
 			raise NumberTooSmall
 			
-
 		return (s, pos)
 					 
 	def validate(self, s, pos):
 		""" Validates s, by adjusting the position of the commas to be in the correct places and adjusting pos accordingly as well as space in order to keep decimal points aligned when varying sized numbers are put one above the other.
 		"""
 		debug = False
-		if s == "debugparty":
-			debug = True
 		if debug:
 			print('Call to self.validate(%s,%d)' % (s.__repr__(),pos,))
 			print((len('Call to self.validate(') + pos) * ' ' + '^')
+			print("max decimals: ", self.maximum_decimals)
+			print("max chars befor decimal point: ", self.characters_before_decimalPoint)
 		try:
+			if debug:
+				print("H")
+			dpl = s.find(self._locale.decimalPoint())
+			zero_code = ord(self._locale.zeroDigit())
+			if dpl == -1:
+				dpl = len(s)
+			
+			digit_count = 0
+			status = None
 			if s.find('!') != -1:
 				self.bang.emit()
 				if debug:
 					print('return QValidator.Invalid, %s,%d' % (s.__repr__(),pos,))
 				return QValidator.Invalid, s, pos
-			if re.match("^ *$", s):
+
+			# Test to see if there are too many post decimal point digits
+			if dpl != len(s):
+				if debug:
+					print("A")
+				for i in range(dpl+1,len(s)):
+					c = ord(s[i])
+					if 0 <= c - zero_code <= 9:
+						if debug:
+							print(digit_count)
+						digit_count = digit_count + 1
+						if digit_count > self.maximum_decimals:
+							s = s[:i]
+							if pos > i:
+								pos = i
+							if debug:
+								print('return QValidator.Intermediate, %s,%d' % (s.__repr__(),pos,))
+							status = QValidator.Intermediate
+							break
+			# Test to see whether there are too many pre decimal point digits 
+			digit_count = 0
+			for i in range(0,dpl):
+				c = ord(s[i])
+				if 0 <= c - zero_code <= 9:
+					digit_count = digit_count + 1
+					if digit_count > self.maximum_decamals:
+						if pos > i and pos < dpl:
+							pos = i
+						elif pos >= dpl:
+							pos = i + (pos - dpl)
+						if debug:
+							print('return QValidator.Intermediate, %s,%d' % (s.__repr__(),pos,))
+						s = s[:i] + s[dpl:]
+						if status is None:
+							status = QValidator.Intermediate
+					
+			
+			# If the field is just all spaces, return Intermediate
+			if debug:
+				print("E")
+			for x in s:
+				if x != ' ':
+					break
+			else:
 				if debug:
 					print('return QValidator.Intermediate, %s,%d' % (s.__repr__(),pos,))
 				return QValidator.Intermediate, s, pos
+				
+			# Test to see there is something other than a number in the string
 			if not self.improper_decimal_re.exactMatch(s):
 				if debug:
 					print('return QValidator.Invalid, %s,%d' % (s.__repr__(),pos,))
 				return QValidator.Invalid, s, pos
+			if debug:
+				print("R")
+				
+				
+			# Test to see whether the number is perfectly formed
 			if self.proper_re.exactMatch(s):
+				if status is not None:
+					return status, s, pos
 				# no need to fix the commas
-				(s, pos) = self._correct_white(s, pos)
+				try:
+					(s, pos) = self._correct_white(s, pos)
+				except:
+					pass
+				if debug:
+					print("E")
 				if debug:
 					print("s = %s\n" % (s.__repr__(),))
 				if debug:
@@ -775,7 +872,11 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 			if debug:
 				print(pos)
 				print(self.improper_decimal_re.pos(2))
+				
+			# Validate the numerical part only regardless of spaces
 			pos_inside_spaces = pos < self.improper_decimal_re.pos(2)		 
+			if debug:
+				print("H")
 			nstatus = None
 			ns = ''
 			npos = None
@@ -783,7 +884,7 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 				if debug:
 					print("    Calling number only validate on %s, %d" % (repr(self.improper_decimal_re.cap(2)), 0))
 				(nstatus, ns, npos) = self.numeric_only_validator.validate(	self.improper_decimal_re.cap(2), 0 )
-				s = self.improper_decimal_re.cap(1) + ns	
+				s = self.improper_decimal_re.cap(1) + ns
 				if debug:
 					print("    Result is %s, %d" % (repr(ns), 0))
 			else:
@@ -795,15 +896,27 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 					print("    Result is %s, %d" % (repr(ns), npos))
 				s = self.improper_decimal_re.cap(1) + ns
 				pos = npos + self.improper_decimal_re.pos(2)
+			
+			if status is None:
+				status = nstatus
+			if debug:
+				print('status is %d' % (status,))
+			if debug:
+				print("E")
 			(s, pos) = self._correct_white(s, pos)
 			if debug:
-				if nstatus == QValidator.Acceptable:
+				print("space difference is ", len(s) - s.find('.'))
+
+			if debug:
+				print("Y")
+			if debug:
+				if status == QValidator.Acceptable:
 					print('return QValidator.Acceptable, %s,%d' % (s.__repr__(),pos,))
-				elif nstatus == QValidator.Invalid:
+				elif status == QValidator.Invalid:
 					print('return QValidator.Invalid, %s,%d' % (s.__repr__(),pos,))
 				else:
 					print('return QValidator.Intermediate, %s,%d' % (s.__repr__(),pos,))
-			return nstatus, s, pos
+			return status, s, pos
 		except NumberOutOfRange:
 			if debug:
 				print('return QValidator.Intermediate, %s,%d (Number out of range)' % (s.__repr__(),pos,))
@@ -811,7 +924,9 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 
 	def setLocale(self, plocale):
 		""" Set the locale used by this Validator.  
-		"""
+		"""	
+		if plocale == self._locale:
+			return
 		self._locale = plocale
 		space_part = ' *' if self.spaced else ''
 		decimalPoint = QRegExp.escape(str(self._locale.decimalPoint()))
