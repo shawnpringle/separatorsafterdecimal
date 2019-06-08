@@ -10,7 +10,7 @@
 	Care has been taken to overload all of the members in a way
 	that is consistent with the base class QLocale and QValidator.
 	
-	This module requires PyQt4.  It doesn't need but it can use KDE.  If KDE and PyKDE are installed on your system, KDE's settings for thousands separator and decimal symbol will be used.  Otherwise
+	This module requires PyQt5.  It is presently only tested with Microsoft Windows.  Users from other platforms are invited to join my team and submit pull-requests to ensure correct functioning.  If KDE and PyKDE are installed on your system, KDE's settings for thousands separator and decimal symbol will be used.  Otherwise
 	the system's locale settings will be used to determine these values.
 """
 
@@ -338,7 +338,7 @@ class QSDNLocale(QLocale) :
 					st.chop(1)
 		st = add_commas(self, st)
 		if xt.sign == 1:
-			st.prepend(self.negativeSign())
+			st = self.negativeSign() + st
 		return st
 					
 	@staticmethod				
