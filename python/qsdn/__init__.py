@@ -125,10 +125,11 @@ class QSDNLocale(QLocale) :
 		
 		s = locale.toString(d)
 	   
-	    All to* routines take a string, and an optional base.  If the base it no specified it will look at the first digit of the number to determine 
+	    All to* routines take a string, and an optional base.  If the base is set to zero, it will look at the first digits of the number to determine 
 	    base it should use.  So, '013' will be interpreted as 11 (as 0 indicates octal form) unless you set the base to 10, in which as it will be interpreted as 13.
 	    You can use '0x' to prefix hexadecimal numbers.  Some developers don't want to expose this programming concept to the users of thier software.  For those
-	    who don't specify the base explicitly as 10.
+	    who don't specify the base explicitly as 10.  As of 1.0.0, the base defaults to 10, because the new behavior as of PyQt5 in the QLocale class is to always 
+	    have the base fixed as 10.
 	    
 		By default QSDNLocale will use the settings specified in your default locale.  This is guaranteed to be true for Mac OS, Windows and KDE-GUIs.  
 		 
@@ -174,18 +175,22 @@ class QSDNLocale(QLocale) :
 	#	#print("Resulting Locale has name %r" % (self.name(),))
 
 				
-	def _toNumber(self, s, base = 0, zero = 0):
+	def _toNumber(self, s, base, zero):
 		"""This creates a decimal representation of s.
 			 
 			 It returns an ordered pair.  The first of the pair is the Decimal number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the decimal returned.
 			 
+		
 			 :note:
-				 Make sure you use 10 as the second argument or it may interpret the string as octal!
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.		  
+							   
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		  
 		   Like the other to* functions of QLocale as well as this class QSDNLocale, interpret a 
 		   a string and parse it and return a Decimal.  The base value is used to determine what base to use.
 		   
-		   If base is not set, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		   If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
 		   be interpreted as hexadecimal and '777' will be interpreted as a decimal.  It is done this way
 		   so this works like toLong, toInt, toFloat, etc...
 		   Leading and trailing whitespace is ignored.
@@ -259,21 +264,26 @@ class QSDNLocale(QLocale) :
 		v /= base ** shift
 		return (v, are_there_digits)
 		
-	def toDecimal(self, s, base = 0):
+	def toDecimal(self, s, base = 10):
 		"""This creates a decimal representation of s.
 			 
 			 It returns an ordered pair.  The first of the pair is the Decimal number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the decimal returned.
 			 
+		
+		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
+		
 			 :note:
-				 Make sure you use 10 as the second argument or it may interpret the string as octal!
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
 		  
-		   Like the other to* functions of QLocale as well as this class QSDNLocale, interpret a 
-		   a string and parse it and return a Decimal.  The base value is used to determine what base to use.
-		   
-		   If base is not set, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
-		   be interpreted as hexadecimal and '777' will be interpreted as a decimal.  It is done this way
-		   so this works like toLong, toInt, toFloat, etc...
-		   Leading and trailing whitespace is ignored.
+							   
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
+
+        Like the other to* functions of QLocale as well as this class QSDNLocale, interpret a 
+		a string and parse it and return a Decimal.  The base value is used to determine what base to use.
+		It is done this way
+		so this works like toLong, toInt, toFloat, etc...
+		Leading and trailing whitespace is ignored.
 		"""
 		return self._toNumber(s, base, D(0))
 
@@ -379,18 +389,35 @@ class QSDNLocale(QLocale) :
 		
 		
 	# return a double represented by the string s.
-	def toDouble(self, s, base = 0):
+	def toDouble(self, s, base = 10):
 			""" Parses the string s and returns a floating point value whose string is s.
+		
+		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
+		
+			 :note:
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
+		  
+							   
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 			 
 			  It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 			  """
 			return str(self._toNumber(s, base, 0.0))
 			
 	# return a float represented by the string s.
-	def toFloat(self, s):
+	def toFloat(self, s, base = 10):
 		""" Parses the string s and returns a floating point value whose string is s.
 		 
-		  It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
+		
+		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
+		
+			 :note:
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
+		  
+							   
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		  """
 		(ans, good) = self._toNumber(s, base, 0.0)
 		if good and float(ans) == ans:
@@ -400,8 +427,17 @@ class QSDNLocale(QLocale) :
 
 			
 	# return a int represented by the string s.
-	def toInt(self, s, base = 0):
+	def toInt(self, s, base = 10):
 		""" Parses the string s and returns an integer value whose string is s.
+		
+		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
+		
+			 :note:
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
+		  
+							   
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		"""
 		(ans, good) = self._toNumber(s, base, 0)
 		if good and int(ans) == ans:
@@ -411,34 +447,32 @@ class QSDNLocale(QLocale) :
 		return self._toNumber(s, base, int(0))
    
 	# return a long represented by the string s.
-	def toLongLong(self, s, base = 0):
+	def toLongLong(self, s, base = 10):
 		""" Parses the string s and returns a floating point value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
 			 :note:
-				 Make sure you use 10 as the second argument or it may interpret the string as octal!
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
 		  
 							   
-		If base is not set, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
-		be interpreted as hexadecimal and '777' will be interpreted as a decimal.  It is done this way
-		so this works like toLong, toInt, toFloat, etc...
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		
 		Leading and trailing whitespace is ignored.		""" 
 		return self._toNumber(s, base, 0)
 		
-	def toShort(self, s, base = 0):
+	def toShort(self, s, base = 10):
 		""" Parses the string s and returns a short value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
 			 :note:
-				 Make sure you use 10 as the second argument or it may interpret the string as octal!
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
 		  
 							   
-		If base is not set, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
-		be interpreted as hexadecimal and '777' will be interpreted as a decimal.  It is done this way
-		so this works like toLong, toInt, toFloat, etc...
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		
 		Leading and trailing whitespace is ignored.		"""
 		(ans, good) = self.toInt(s, base)
@@ -448,18 +482,17 @@ class QSDNLocale(QLocale) :
 			return (ans, False)
 		
 	# return a uint represented by the string s.
-	def toUInt(self, s, base = 0):
+	def toUInt(self, s, base = 10):
 		""" Parses the string s and returns an unsigned integer value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
 			 :note:
-				 Make sure you use 10 as the second argument or it may interpret the string as octal!
+				 You may set another parameter, the base (which defaults to 10), so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
 		  
 							   
-		If base is not set, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
-		be interpreted as hexadecimal and '777' will be interpreted as a decimal.  It is done this way
-		so this works like toLong, toInt, toFloat, etc...
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		
 		Leading and trailing whitespace is ignored.		""" 
 		(ans, good) = self._toNumber(s, base, 0)
@@ -469,18 +502,18 @@ class QSDNLocale(QLocale) :
 			return (ans,False)
 
 	# return a ulonglong represented by the string s.
-	def toULongLong(self, s, base = 0):
+	def toULongLong(self, s, base = 10):
 		""" Parses the string s and returns an unsigned long long value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
 			 :note:
-				 Make sure you use 10 as the second argument or it may interpret the string as octal!
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
 		  
 							   
-		If base is not set, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
-		be interpreted as hexadecimal and '777' will be interpreted as a decimal.  It is done this way
-		so this works like toLong, toInt, toFloat, etc...
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
+
 		
 		Leading and trailing whitespace is ignored.		""" 
 		(ans, good) = self._toNumber(s, base, 0)
@@ -490,19 +523,18 @@ class QSDNLocale(QLocale) :
 			return (ans,False)
 		
 	# return a ushort represented by the string s.
-	def toUShort(self, s, base = 0):
+	def toUShort(self, s, base = 10):
 		""" Parses the string s and returns a unsigned long long value whose string is s.
 
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
 		
 			 :note:
-				 Make sure you use 10 as the second argument or it may interpret the string as octal!
+				 You may set another parameter, the base, so you can interpret the string as 8 for octal, 16 for hex, 2 for binary.
 		  
 							   
-		If base is not set, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
-		be interpreted as hexadecimal and '777' will be interpreted as a decimal.  It is done this way
-		so this works like toLong, toInt, toFloat, etc...
+		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
+		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		
 		Leading and trailing whitespace is ignored.		""" 
 		(ans, good) = self._toNumber(s, base, 0)

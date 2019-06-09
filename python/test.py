@@ -281,11 +281,11 @@ class TestNumericFormating(unittest.TestCase):
         self.us_locale = IQLocale("en_US")
         TESTINPUT=0
         EXPECTED=1            
-        (d, good) = self.us_locale.toDecimal("0xB,ADF,00D")
+        (d, good) = self.us_locale.toDecimal("0xB,ADF,00D", 0)
         self.assertEqual( True, good, msg="0xB,ADF,00D #1" )
         self.assertEqual( D("195948557"), d, msg="0xB,ADF,00D #2" )
         new_string = '0xFF0'
-        (value, ok) = self.us_locale.toDecimal(new_string)
+        (value, ok) = self.us_locale.toDecimal(new_string, 0)
         self.assertEqual( new_string, '0xFF0', msg = 'numbers passed are not modified')
         a_string = str('      100')
         self.assertEqual( ok,    True,  msg = "hex numbers without commas parse successfully")
@@ -330,12 +330,12 @@ class TestNumericFormating(unittest.TestCase):
         self.assertEqual( ('\u0663\u066b\u0661\u0664\u0661\u066c\u0666'), egyptian.toString( D('3.1416') ) , msg= "Egyptian PI 5 digits" )
 
     def test_otherbases(self):
-        self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0x0.5"), msg="5/16 hex #1" ) # 5/16
+        self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0x0.5", 0), msg="5/16 hex #1" ) # 5/16
         self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0.5", 16), msg="5/16 hex #2" ) # 5/16
-        self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("01.2"), msg="1 1/4 octal #1" )  # 1 1/4
+        self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("01.2", 0), msg="1 1/4 octal #1" )  # 1 1/4
         self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("1.2", 8), msg="1 1/4 octal #2" )  # 1 1/4
-        self.assertEqual( (D("1.2"), True), self.us_locale.toDecimal(str("01.2"), 10), msg="1 1/5 decimal #1" )        # 1 1/5
-        self.assertEqual((D("1.2"), True), self.us_locale.toDecimal(str("1.2")), msg="1 1/5 decimal #2" )        # 1 1/5
+        self.assertEqual( (D("1.2"), True), self.us_locale.toDecimal("01.2", 10), msg="1 1/5 decimal #1" )        # 1 1/5
+        self.assertEqual((D("1.2"), True), self.us_locale.toDecimal("1.2", 0), msg="1 1/5 decimal #2" )        # 1 1/5
         self.assertEqual( (D("6.375"), True), self.us_locale.toDecimal("110.011", 2), msg="4+2+1/4+1/8 binary" )
     	
 
