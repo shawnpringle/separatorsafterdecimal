@@ -1,0 +1,46 @@
+Python Module Distribution
+--------------------------
+
+Go into the doc directory and type make text html.
+Then replace the README.txt file with what you will find in ./build/text/index.text
+
+    Install pip and then:
+    
+    python -m pip install --user --upgrade setuptools wheel sphinx
+    python -m pip install --user --upgrade twine
+
+Then run:
+    
+    python setup.py sdist bdist_wheel
+    python -m twine upload -u Shawn.Pringle --repository-url https://test.pypi.org/legacy/ dist/*
+    
+Supply the password that you use on the test site.
+
+Go to some temporary directory like C:\TEMP and type: 
+
+    python -m virtualenv ENV
+    
+Run:
+    cd ENV
+    cmd
+    ENV\Scripts\activate.bat
+    
+    Then do: python -m pip install --index-url https://test.pypi.org/simple/  qsdn
+    
+    Now try:
+    python
+      >>> import qsdn
+      >>> l = qsdn.QSDNLocale()
+      >>> l.toDecimal("14,050")
+      (Decimal('14050'), True)
+      >>> e = qsdn.QSDNLocale("en_US")
+      >>> e.toDecimal("0.000,001", 10)
+      (Decimal('0.000001'), True)
+      >>> ans = e.toDecimal("0.000,000,1",10)
+      >>> ans
+      (Decimal('1E-7'), True)
+      >>> e.toString(ans[0])
+      '0.000,000,1'
+
+
+

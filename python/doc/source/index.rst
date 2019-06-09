@@ -19,6 +19,9 @@ Contents:
 .. autoclass:: QSDNNumericValidator
     :members:
 
+.. autoclass:: QSDNLimitedNumericValidator
+    :members:
+
 Indices and tables
 ==================
 

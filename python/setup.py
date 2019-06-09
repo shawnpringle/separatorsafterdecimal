@@ -1,11 +1,11 @@
 import setuptools
 
-with open("README.txt", "r") as fh:
+with open("README.txt", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="qsdn",
-    version="1.0.0rc1",
+    version="1.0.0",
     author="Shawn.Pringle",
     author_email="shawn.pringle@gmail.com",
     description="Python Qt5 Classes that Display and Parse Numbers using Standard Decimal Notation",
