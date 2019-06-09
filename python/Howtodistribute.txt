@@ -1,8 +1,7 @@
 Python Module Distribution
 --------------------------
 
-Go into the doc directory and type make text html.
-Then replace the README.txt file with what you will find in ./build/text/index.text
+Go into the doc directory and type 'make text'.
 
     Install pip and then:
     

@@ -1,7 +1,8 @@
 import setuptools
 
-with open("README.txt", "r", encoding='utf-8') as fh:
+with open("doc/build/text/index.txt", "r", encoding='utf-8') as fh:
     long_description = fh.read()
+    
 
 setuptools.setup(
     name="qsdn",
@@ -10,6 +11,7 @@ setuptools.setup(
     author_email="shawn.pringle@gmail.com",
     description="Python Qt5 Classes that Display and Parse Numbers using Standard Decimal Notation",
     long_description=long_description,
+    long_description_content_type="text/plain",
     url="https://github.com/shawnpringle/separatorsafterdecimal",
     packages=setuptools.find_packages(),
     classifiers=[
