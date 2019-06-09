@@ -1,6 +1,6 @@
-from qsdn import QSDNLocale as IQLocale
-from qsdn import QSDNNumericValidator as NumberValidator
-from qsdn import QSDNLimitedNumericValidator as CryptoCurrencyValidator
+from qsdn import Locale as IQLocale
+from qsdn import NumericValidator as NumberValidator
+from qsdn import LimitingNumericValidator as CryptoCurrencyValidator
 import unittest
 from decimal import Decimal as D
 import decimal

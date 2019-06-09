@@ -20,7 +20,7 @@
 #				^
 #				|
 #				|
-#		  [[QSDNLocale]]
+#		  [[Locale]]
 #	  
 
 # Class inheritance diagram
@@ -29,11 +29,11 @@
 #				^			   
 #				|			   
 #				|			   
-#	  [[QSDNNumericValidator]]
+#	  [[NumericValidator]]
 #				^			   
 #               |
 #               |
-# [[QSDNLimitedNumericValidator]] 
+# [[LimitingNumericValidator]] 
 # 
 # SDN stands for 'standard decimal notation'.  That is not 'normalized Scientific notation'.
 
@@ -51,7 +51,7 @@ except:
 
 # Style note:
 # You might be wondering why I didn't make a class for KDE's locale in
-# order to avoid assigning methods. The goal of QSDNLocale is to provide
+# order to avoid assigning methods. The goal of Locale is to provide
 # a drop in replacement for QLocale. A KDELocale if implemented as a
 # separate class, would require the user to handle KDE as a special
 # case. In order to comply with drop in replacement requirement, the
@@ -96,23 +96,23 @@ def add_commas(locale, st):
 	return st
 
 
-class QSDNLocale(QLocale) :
+class Locale(QLocale) :
 	""" 
 		
-	For a QSDNlocale, locale:
+	For a Locale, locale:
 		Main benefit is numbers converted to a string are always converted to standard decimal notation.  And you control how far numbers are written before they are truncated.  Another benefit is it works with decimal.Decimal numbers natively.  So
 		numbers get converted directly from String to Decimal and vice versa.
 		
 	    To construct one, you can supply a name of a locale and specify the mandatory and maximum digits after the decimal point.
 	    
-	    locale = QSDNLocale("en_US", 2, 3)
+	    locale = Locale("en_US", 2, 3)
 	    locale.toString(4) is '4.00'
 	    locale.toString(4.01) is '4.01'
 	    locale.toString(1/3) is '0.333'
 	    
 	    To specify the language and script, pass in a QLocale to the constructor: like this:
 	    qlocale  = QLocale('en_US', QLocale.Latin, QLocale.Spanish)
-	    sdnlocale = QSDNLocale(qlocale, 2, 3)
+	    sdnlocale = Locale(qlocale, 2, 3)
 	
 	
 		To get the Decimal of a string, s, use:
@@ -131,7 +131,7 @@ class QSDNLocale(QLocale) :
 	    who don't specify the base explicitly as 10.  As of 1.0.0, the base defaults to 10, because the new behavior as of PyQt5 in the QLocale class is to always 
 	    have the base fixed as 10.
 	    
-		By default QSDNLocale will use the settings specified in your default locale.  This is guaranteed to be true for Mac OS, Windows and KDE-GUIs.  
+		By default Locale will use the settings specified in your default locale.  This is guaranteed to be true for Mac OS, Windows and KDE-GUIs.  
 		 
 		
 		
@@ -155,20 +155,20 @@ class QSDNLocale(QLocale) :
 		  p_maximum_decimals (int or Decimal) the maximum number of decimals required for a number
 		"""
 	
-		#print("QSDNLocale constructor called with: %r, %r, %r, %r" % (self, _name, p_mandatory_decimals, p_maximum_decimals))
+		#print("Locale constructor called with: %r, %r, %r, %r" % (self, _name, p_mandatory_decimals, p_maximum_decimals))
 		if _name is not None:
-			if _name.__class__ == QLocale or _name.__class__ == QSDNLocale:
+			if _name.__class__ == QLocale or _name.__class__ == Locale:
 				QLocale.__init__(self, _name.language(), _name.script(), _name.country() )
 			else:
 				QLocale.__init__(self, _name)
 		else:
 			# default is broken in underlying QLocale, implement it here.
-			if QSDNLocale._default_locale is None:
-				QSDNLocale._default_locale = QLocale.system()
-			d = QSDNLocale._default_locale
+			if Locale._default_locale is None:
+				Locale._default_locale = QLocale.system()
+			d = Locale._default_locale
 			#print("Default locale has name: %s" %(d.name(),)) 
-			QSDNLocale.__init__(self, d)
-		if QSDNLocale._default_KDE:
+			Locale.__init__(self, d)
+		if Locale._default_KDE:
 			_make_KDE(self)
 		self._mandatory_decimals = p_mandatory_decimals
 		self._maximum_decimals = p_maximum_decimals
@@ -187,7 +187,7 @@ class QSDNLocale(QLocale) :
 		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
 		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		  
-		   Like the other to* functions of QLocale as well as this class QSDNLocale, interpret a 
+		   Like the other to* functions of QLocale as well as this class Locale, interpret a 
 		   a string and parse it and return a Decimal.  The base value is used to determine what base to use.
 		   
 		   If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
@@ -279,7 +279,7 @@ class QSDNLocale(QLocale) :
 		If base is set to 0, numbers such as '0777' will be interpreted as octal.  The string '0x33' will
 		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 
-        Like the other to* functions of QLocale as well as this class QSDNLocale, interpret a 
+        Like the other to* functions of QLocale as well as this class Locale, interpret a 
 		a string and parse it and return a Decimal.  The base value is used to determine what base to use.
 		It is done this way
 		so this works like toLong, toInt, toFloat, etc...
@@ -353,24 +353,24 @@ class QSDNLocale(QLocale) :
 					
 	@staticmethod				
 	def system() :
-		""" Returns the system default for QSDNLocale.  
+		""" Returns the system default for Locale.  
 		"""		
-		return QSDNLocale(QLocale.system())
+		return Locale(QLocale.system())
 	
 	@staticmethod
 	def c() :
 		""" Returns the C locale.  In the C locale, to* routines will not accept group separtors and do not produce them. 
 		"""
-		_c = QSDNLocale(QLocale.c())
+		_c = Locale(QLocale.c())
 		return _c
 		
 	@staticmethod
 	def setDefault(new_default):
 		_default_locale = new_default
 		try:
-			QSDNLocale._default_KDE = (new_default.decimalPoint == KGlobal.locale().decimalSymbol)
+			Locale._default_KDE = (new_default.decimalPoint == KGlobal.locale().decimalSymbol)
 		except:
-			QSDNLocale._default_KDE = False
+			Locale._default_KDE = False
 		  
 	# returns a filtered copy of s so that it can be used by the  dumber QLocale's to* routines.
 	#  if QLocale.RejectGroupSeparator is set, this routine wont filter commas.  A decimal point on the end of the number will be removed if 
@@ -544,26 +544,26 @@ class QSDNLocale(QLocale) :
 			return (ans,False)
 
 	def __eq__(self, other):
-		if other.__class__ is not QSDNLocale:
+		if other.__class__ is not Locale:
 			return False
 		return QLocale.__eq__(self, other) and self._mandatory_decimals == other._mandatory_decimals and self._maximum_decimals == other._maximum_decimals
 
-class QSDNNumericValidator(QValidator) :
-	""" QSDNNumericValidator allows for numbers of any length but groupSeparators are added or corrected when missing or out of place.
+class NumericValidator(QValidator) :
+	""" NumericValidator allows for numbers of any length but groupSeparators are added or corrected when missing or out of place.
 																							  
 	  U.S. dollar amounts;
-						 dollar = QSDNNumericValidator(6,2)
+						 dollar = NumericValidator(6,2)
 						 s = '42.1'
 						 dollar.validate(s='42.1', 2)   =>  s = '42.10'
 						 s='50000'
 						 dollar.toString(s)			  => s = ' 50,000.00'
 	"""																							  
-	localeSet = pyqtSignal( QSDNLocale )
+	localeSet = pyqtSignal( Locale )
 
 	def __init__(self, parent = None) :
 		QValidator.__init__(self, parent)
 		self._locale = None
-		self.setLocale( QSDNLocale() )
+		self.setLocale( Locale() )
 		
 		
 	def validate(self, s, pos):
@@ -708,12 +708,12 @@ class NumberTooSmall(NumberOutOfRange):
 class NumberTooBig(NumberOutOfRange):
 	pass
 
-class QSDNLimitedNumericValidator(QSDNNumericValidator) :
-	""" QSDNNumericValidator limits the number of digits after the decimal
+class LimitingNumericValidator(NumericValidator) :
+	""" NumericValidator limits the number of digits after the decimal
 	 point and the number of digits before. 
 	 
-	  bitcoin						 :  QSDNNumericValidator(8, 8)
-	  US dollars less than $1,000,000 :  QSDNNumericValidator(6, 2)
+	  bitcoin						 :  NumericValidator(8, 8)
+	  US dollars less than $1,000,000 :  NumericValidator(6, 2)
 	  
 	  
 	  If use space is true, spaces are added on the left such that the location
@@ -727,7 +727,7 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 						 '		0.000,004'
 																							  
 	  U.S. dollar amounts;  
-						 dollar = QSDNNumericValidator(6,2)
+						 dollar = NumericValidator(6,2)
 						 s = '42.1'
 						 dollar.validate(s='42.1', 2)   =>  s = '	 42.10'
 						 s='50000'
@@ -743,14 +743,14 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 		QValidator.__init__(self, parent)
 		# true if we use spaces for justifying the string.
 		#create signal
-		self.numeric_only_validator = QSDNNumericValidator(parent)
+		self.numeric_only_validator = NumericValidator(parent)
 		self.spaced = use_space
 		self.maximum_decimals = maximum_decimals
 		self.maximum_decamals = maximum_decamals
 		self.characters_before_decimalPoint = maximum_decamals * 4 // 3
 		self.characters_after_decimalPoint = maximum_decimals * 4 // 3
 		self._locale = None
-		self.setLocale( QSDNLocale() )
+		self.setLocale( Locale() )
 	
 	def decimals(self):
 		""" gets the number of decimal digits that are allowed *after* the decimal point """
@@ -922,7 +922,7 @@ class QSDNLimitedNumericValidator(QSDNNumericValidator) :
 			else:
 				if debug:
 					print("    Calling number only validate on %s, %d" % (repr(self.improper_decimal_re.cap(2)), pos-self.improper_decimal_re.pos(2)))
-				(nstatus, ns, npos) = QSDNNumericValidator.validate(self, 
+				(nstatus, ns, npos) = NumericValidator.validate(self, 
 					self.improper_decimal_re.cap(2), pos-self.improper_decimal_re.pos(2) )
 				if debug:
 					print("    Result is %s, %d" % (repr(ns), npos))
