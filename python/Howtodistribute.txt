@@ -29,17 +29,30 @@ Run:
     Now try:
     python
       >>> import qsdn
-      >>> l = qsdn.QSDNLocale()
-      >>> l.toDecimal("14,050")
+      >>> le = qsdn.QSDNLocale('en_US')
+      >>> le.toDecimal("14,050")
       (Decimal('14050'), True)
-      >>> e = qsdn.QSDNLocale("en_US")
-      >>> e.toDecimal("0.000,001", 10)
+      >>> le.toDecimal("0.000,001", 10)
       (Decimal('0.000001'), True)
-      >>> ans = e.toDecimal("0.000,000,1",10)
+      >>> ans = le.toDecimal("0.000,000,1",10)
       >>> ans
       (Decimal('1E-7'), True)
-      >>> e.toString(ans[0])
+      >>> le.toString(ans[0])
       '0.000,000,1'
-
+      >>> quit()
+      
+   copy test.py from the source distribution to this ENV directory and run
+   python -m unittest
+   
+   
+   All tests should finish OK.
+   
+   
+If there have been no failures with the tests, it is time to make a real release:
+    get back to the source distribution directory in python
+    python -m twine upload -u Shawn.Pringle --repository-url https://test.pypi.org/legacy/ dist/*
+    
+      
+     
 
 
