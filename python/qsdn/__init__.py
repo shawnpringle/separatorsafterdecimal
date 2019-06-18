@@ -40,12 +40,9 @@
 import re
 import traceback, sys
 from decimal import Decimal as D
-try:
-	from PyQt5.QtCore import *
-	from PyQt5.QtGui import *
-except:
-	from PyQt4.QtCore import *
-	from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+
 # KDE: a walled garden.
 # This is supposed to work with or without KDE.
 
@@ -168,7 +165,7 @@ class Locale(QLocale) :
 			d = Locale._default_locale
 			#print("Default locale has name: %s" %(d.name(),)) 
 			Locale.__init__(self, d)
-		if Locale._default_KDE:
+			# Pull default parameters from KDE if available.
 			_make_KDE(self)
 		self._mandatory_decimals = p_mandatory_decimals
 		self._maximum_decimals = p_maximum_decimals
@@ -312,7 +309,7 @@ class Locale(QLocale) :
 		set at construction of the locale:
 		_maximum_decimals controls the maximum number of decimals after the decimal point
 		So, if _maximum_decimals is 6 and _mandatory_decimals is 2 then 
-		toString(Decimal('3.1415929')) is '3.141,592'.
+		toString(3.1415929) is '3.141,592'.
 		Notice the number is truncated and not rounded.  
 		Consider rounding a copy of the number before displaying.
 		"""
@@ -376,23 +373,7 @@ class Locale(QLocale) :
 			Locale._default_KDE = (new_default.decimalPoint == KGlobal.locale().decimalSymbol)
 		except:
 			Locale._default_KDE = False
-		  
-	# returns a filtered copy of s so that it can be used by the  dumber QLocale's to* routines.
-	#  if QLocale.RejectGroupSeparator is set, this routine wont filter commas.  A decimal point on the end of the number will be removed if 
-	#  present.
-	def _filtered(self, s):
-		s = str(s)
-		if s.endswith(str(self.decimalPoint())):
-			s.chop(1)
-		if QLocale.RejectGroupSeparator & self.numberOptions() != QLocale.RejectGroupSeparator:
-			while True:
-				t = s.find(self.groupSeparator())
-				if t == -1:
-					break
-				s = s[:t] + s[t+1:]
-		return s
-		
-		
+	
 	# return a double represented by the string s.
 	def toDouble(self, s, base = 10):
 			""" Parses the string s and returns a floating point value whose string is s.
@@ -575,11 +556,7 @@ class NumericValidator(QValidator) :
 		QValidator.__init__(self, parent)
 		self._locale = None
 		self.setLocale( Locale() )
-		
-		
-		
-		
-		
+	
 	def validate(self, s, pos):
 		debug = False
 		if debug:
@@ -606,9 +583,7 @@ class NumericValidator(QValidator) :
 		if debug:
 			print("delegated to validate_positive with pos")
 		(status, s, pos) = self.validate_positive(s[1:], pos-1)
-		return (status, sign_str+s, pos+1)
-				
-		
+		return (status, sign_str+s, pos+1)	
 		
 	def validate_positive(self, s, pos):
 		try:
