@@ -266,7 +266,7 @@ class Locale(QLocale) :
 		v *= polarity
 		return (v, are_there_digits)
 		
-	def toDecimal(self, s, base = 10):
+	def toDecimal(self, s, *, base = 10):
 		"""This creates a decimal representation of s.
 			 
 			 It returns an ordered pair.  The first of the pair is the Decimal number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the decimal returned.
@@ -375,7 +375,7 @@ class Locale(QLocale) :
 			Locale._default_KDE = False
 	
 	# return a double represented by the string s.
-	def toDouble(self, s, base = 10):
+	def toDouble(self, s, *, base = 10):
 			""" Parses the string s and returns a floating point value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
@@ -392,7 +392,7 @@ class Locale(QLocale) :
 			return str(self._toNumber(s, base, 0.0))
 			
 	# return a float represented by the string s.
-	def toFloat(self, s, base = 10):
+	def toFloat(self, s, *, base = 10):
 		""" Parses the string s and returns a floating point value whose string is s.
 		 
 		
@@ -413,7 +413,7 @@ class Locale(QLocale) :
 
 			
 	# return a int represented by the string s.
-	def toInt(self, s, base = 10):
+	def toInt(self, s, *, base = 10):
 		""" Parses the string s and returns an integer value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
@@ -433,7 +433,7 @@ class Locale(QLocale) :
 		return self._toNumber(s, base, int(0))
    
 	# return a long represented by the string s.
-	def toLongLong(self, s, base = 10):
+	def toLongLong(self, s, *, base = 10):
 		""" Parses the string s and returns a floating point value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
@@ -448,7 +448,7 @@ class Locale(QLocale) :
 		Leading and trailing whitespace is ignored.		""" 
 		return self._toNumber(s, base, 0)
 		
-	def toShort(self, s, base = 10):
+	def toShort(self, s, *, base = 10):
 		""" Parses the string s and returns a short value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.
@@ -461,14 +461,14 @@ class Locale(QLocale) :
 		be interpreted as hexadecimal and '777' will be interpreted as a decimal.
 		
 		Leading and trailing whitespace is ignored.		"""
-		(ans, good) = self.toInt(s, base)
+		(ans, good) = self.toInt(s, base = base)
 		if good and -32768 <= ans <= 32767:
 			return (ans, True)
 		else:
 			return (ans, False)
 		
 	# return a uint represented by the string s.
-	def toUInt(self, s, base = 10):
+	def toUInt(self, s, *, base = 10):
 		""" Parses the string s and returns an unsigned integer value whose string is s.
 		
 		It returns an ordered pair.  The first of the pair is the number, the second of the pair indicates whether the string had a valid representation of that number.  You should always check the second of the ordered pair before using the number returned.

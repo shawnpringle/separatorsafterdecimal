@@ -316,17 +316,18 @@ class TestNumericFormating(unittest.TestCase):
         verbose = False
         for c in tests:
             self.assertEqual( str(c[1]), self.us_locale.toString(c[0]), msg="Test case %s" % c[1] )
-            self.assertEqual( (c[0], True), self.us_locale.toDecimal(c[1], 10), msg="Test case US locale parsing %s" % c[1] )
-        
+            self.assertEqual( (c[0], True), self.us_locale.toDecimal(c[1], base=10), msg="Test case US locale parsing %s" % c[1] )
+    
+    
     def test_hex(self):
         self.us_locale = IQLocale("en_US")
         TESTINPUT=0
         EXPECTED=1            
-        (d, good) = self.us_locale.toDecimal("0xB,ADF,00D", 0)
+        (d, good) = self.us_locale.toDecimal("0xB,ADF,00D", base=0)
         self.assertEqual( True, good, msg="0xB,ADF,00D #1" )
         self.assertEqual( D("195948557"), d, msg="0xB,ADF,00D #2" )
         new_string = '0xFF0'
-        (value, ok) = self.us_locale.toDecimal(new_string, 0)
+        (value, ok) = self.us_locale.toDecimal(new_string, base=0)
         self.assertEqual( new_string, '0xFF0', msg = 'numbers passed are not modified')
         a_string = '      100'
         self.assertEqual( ok,    True,  msg = "hex numbers without commas parse successfully")
@@ -351,7 +352,7 @@ class TestNumericFormating(unittest.TestCase):
         self.assertEqual(spanishlocale.name(), "es_ES")
         for c in tests:
             self.assertEqual( c[1], spanishlocale.toString(c[0]), msg="Test case spanish to String %s" % c[1] )
-            self.assertEqual( (c[0], True), spanishlocale.toDecimal(c[1], 10), msg="Test case spanish parsing %s" % c[1] )
+            self.assertEqual( (c[0], True), spanishlocale.toDecimal(c[1], base=10), msg="Test case spanish parsing %s" % c[1] )
             
                         
     def test_c(self):
@@ -363,7 +364,7 @@ class TestNumericFormating(unittest.TestCase):
         self.assertEqual(clocale.name(), "C")
         for c in tests:
             self.assertEqual( str(c[1]), clocale.toString(c[0]), msg="Test case %s" % c[1] )
-            self.assertEqual( (c[0], True), clocale.toDecimal(c[1], 10), msg="Test case C parsing %s" % c[1] )
+            self.assertEqual( (c[0], True), clocale.toDecimal(c[1]), msg="Test case C parsing %s" % c[1] )
         IQLocale.setDefault(IQLocale.system())
         
     def test_egyptian(self):
@@ -371,13 +372,13 @@ class TestNumericFormating(unittest.TestCase):
         self.assertEqual( ('\u0663\u066b\u0661\u0664\u0661\u066c\u0666'), egyptian.toString( D('3.1416') ) , msg= "Egyptian PI 5 digits" )
 
     def test_otherbases(self):
-        self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0x0.5", 0), msg="5/16 hex #1" ) # 5/16
-        self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0.5", 16), msg="5/16 hex #2" ) # 5/16
-        self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("01.2", 0), msg="1 1/4 octal #1" )  # 1 1/4
-        self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("1.2", 8), msg="1 1/4 octal #2" )  # 1 1/4
-        self.assertEqual( (D("1.2"), True), self.us_locale.toDecimal("01.2", 10), msg="1 1/5 decimal #1" )        # 1 1/5
-        self.assertEqual((D("1.2"), True), self.us_locale.toDecimal("1.2", 0), msg="1 1/5 decimal #2" )        # 1 1/5
-        self.assertEqual( (D("6.375"), True), self.us_locale.toDecimal("110.011", 2), msg="4+2+1/4+1/8 binary" )
+        self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0x0.5", base=0), msg="5/16 hex #1" ) # 5/16
+        self.assertEqual( (D("0.3125"), True), self.us_locale.toDecimal("0.5", base=16), msg="5/16 hex #2" ) # 5/16
+        self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("01.2", base=0), msg="1 1/4 octal #1" )  # 1 1/4
+        self.assertEqual( (D("1.25"), True), self.us_locale.toDecimal("1.2", base=8), msg="1 1/4 octal #2" )  # 1 1/4
+        self.assertEqual( (D("1.2"), True), self.us_locale.toDecimal("01.2", base=10), msg="1 1/5 decimal #1" )        # 1 1/5
+        self.assertEqual((D("1.2"), True), self.us_locale.toDecimal("1.2", base=0), msg="1 1/5 decimal #2" )        # 1 1/5
+        self.assertEqual( (D("6.375"), True), self.us_locale.toDecimal("110.011", base=2), msg="4+2+1/4+1/8 binary" )
     	
 
     def test_quantized(self):
@@ -517,25 +518,36 @@ class TestSpacedCryptoCurrencyValidator(unittest.TestCase):
 		(status, result_string, pos) = self.validator.validate("Hello", 2)
 		self.assertEqual("QValidator.Invalid", self.validate_strings[status])	
 
-
 class TestParsing(unittest.TestCase):
-    def test_all(self):
+    def test_with_base_specified(self):
         locale = IQLocale('US')
-        locale.toShort('321')
-        self.assertEqual( (321, True) , locale.toShort('321', 10), msg = "tiny value to short")
-        self.assertEqual( False, locale.toShort('70,000', 10)[1], msg = "value to to short is too long")
-        self.assertEqual( (32000, True), locale.toShort('32,000', 10), msg = "big value to short")
-        self.assertEqual( (60000, True), locale.toUShort('60,000', 10), msg = "big value to ushort")
-        self.assertEqual( (2000000, True), locale.toInt('2,000,000', 10), msg = "big int value to int")
-        self.assertEqual( (4000000, True), locale.toUInt('4,000,000', 10), msg = "big uint value to int")
-        locale = IQLocale.c()
-        self.assertEqual( (321, True) , locale.toShort('321', 10), msg = "tiny value to short")
-        self.assertEqual( False, locale.toShort('70000', 10)[1], msg = "value to short is too long")
-        self.assertEqual( (32000, True), locale.toShort('32000', 10), msg = "big value to short")
-        self.assertEqual( (60000, True), locale.toUShort('60000', 10), msg = "big value to ushort")
-        self.assertEqual( (2000000, True), locale.toInt('2000000', 10), msg = "big int value to int")
-        self.assertEqual( (4000000, True), locale.toUInt('4000000', 10), msg = "big uint value to int")
+        self.assertEqual( (321, True) , locale.toShort('321', base = 10), msg = "tiny value to short")
+        self.assertEqual( False, locale.toShort('70,000', base = 10)[1], msg = "value to to short is too long")
+        self.assertEqual( (32000, True), locale.toShort('32,000', base = 10), msg = "big value to short")
+        self.assertEqual( (60000, True), locale.toUShort('60,000', base= 10), msg = "big value to ushort")
+        self.assertEqual( (2000000, True), locale.toInt('2,000,000', base = 10), msg = "big int value to int")
+        self.assertEqual( (4000000, True), locale.toUInt('4,000,000', base = 10), msg = "big uint value to int")
         
+        locale = IQLocale.c()
+        self.assertEqual( (321, True) , locale.toShort('321', base= 10), msg = "tiny value to short")
+        self.assertEqual( False, locale.toShort('70000', base= 10)[1], msg = "value to short is too long")
+        self.assertEqual( (32000, True), locale.toShort('32000', base= 10), msg = "big value to short")
+        self.assertEqual( (60000, True), locale.toUShort('60000', base= 10), msg = "big value to ushort")
+        self.assertEqual( (2000000, True), locale.toInt('2000000', base= 10), msg = "big int value to int")
+        self.assertEqual( (4000000, True), locale.toUInt('4000000', base= 10), msg = "big uint value to int")
+
+    def test_without_base_specified(self):
+        locale = IQLocale('US')
+        self.assertEqual( (321, True) , locale.toShort('321'), msg = "tiny value to short base not set")
+        self.assertEqual( False, locale.toShort('70,000')[1], msg = "value to to short is too long")
+        self.assertEqual( (32000, True), locale.toShort('32,000'), msg = "big value to short")
+        self.assertEqual( (60000, True), locale.toUShort('60,000'), msg = "big value to ushort")
+        self.assertEqual( (2000000, True), locale.toInt('2,000,000'), msg = "big int value to int")
+        self.assertEqual( (4000000, True), locale.toUInt('4,000,000'), msg = "big uint value to int")
+
+    	
+
+
 class TestStatics(unittest.TestCase):
 	def setUp(self):
 		pass
