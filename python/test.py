@@ -45,9 +45,17 @@ class TestNumericValidator(unittest.TestCase):
 		self.validate_strings = [ 'QValidator.Invalid', 'QValidator.Intermediate', 'QValidator.Acceptable' ]
 
 		
-	def test_validator_0(self):
+	def test_validator_empty(self):
 		(status, result_string, pos) = self.validator.validate("", 0)
-		self.assertEqual( "QValidator.Intermediate", self.validate_strings[status], msg="Validate validate empty string #0" )
+		self.assertEqual( "QValidator.Intermediate", self.validate_strings[status], msg="Validate validate empty string" )
+	
+	def test_validate_0(self):
+		(status, result_string, pos) = self.validator.validate("0", 0)
+		self.assertEqual( "QValidator.Acceptable", self.validate_strings[status], msg="Validate validate 0" )
+	
+	def test_validate_m0(self):
+		(status, result_string, pos) = self.validator.validate("-0", 0)
+		self.assertEqual( "QValidator.Acceptable", self.validate_strings[status], msg="Validate validate -0" )
 	
 	def test_validator_1(self):
 		(status, result_string, pos) = self.validator.validate("0.0034", 0)
@@ -80,6 +88,22 @@ class TestNumericValidator(unittest.TestCase):
 	def test_validator_doubledot(self):
 		(status, result_string, pos) = self.validator.validate("0123.12.3", 0)
 		self.assertEqual("QValidator.Invalid", self.validate_strings[status])
+	def test_validator_m0034(self):
+		(status, result_string, pos) = self.validator.validate("-0.0034", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("-0.003,4", result_string)
+	def test_validator_m0001423(self):
+		(status, result_string, pos) = self.validator.validate("-0.001,423", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("-0.001,423", result_string)
+	def test_validator_m0003412(self):
+		(status, result_string, pos) = self.validator.validate("-0.003,412,3", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("-0.003,412,3", result_string)
+	def test_validator_123456789(self):
+		(status, result_string, pos) = self.validator.validate("-123456789", 0)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("-123,456,789", result_string)
 
 class CryptoCurencyUnspacedValidator(unittest.TestCase):
 	def setUp(self):
@@ -121,6 +145,11 @@ class CryptoCurencyUnspacedValidator(unittest.TestCase):
 		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
 		self.assertEqual("0.42", result_string)
 
+	def test_validate_m042(self):
+		(status, result_string, pos) = self.validator.validate("-.42", 0)
+		self.assertEqual(["QValidator.Acceptable", "-0.42"], [self.validate_strings[status], result_string])
+		self.assertEqual("-0.42", result_string)
+
 	def test_validate_0123123(self):
 		(status, result_string, pos) = self.validator.validate("0123.12.3", 0)
 		self.assertEqual("QValidator.Invalid", self.validate_strings[status])
@@ -137,11 +166,23 @@ class CryptoCurencyUnspacedValidator(unittest.TestCase):
 		self.assertEqual("17", result_string)
 		self.assertEqual(2, pos)
 
-	def test_validate_17(self):
+	def test_validate_m17(self):
+		(status, result_string, pos) = self.validator.validate("17", 2)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual("17", result_string)
+		self.assertEqual(2, pos)
+
+	def test_validate_17c(self):
 		(status, result_string, pos) = self.validator.validate("17,", 3)
 		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
 		self.assertEqual("17,", result_string)
 		self.assertEqual(3, pos)
+
+	def test_validate_m17c(self):
+		(status, result_string, pos) = self.validator.validate("-17,", 4)
+		self.assertEqual("QValidator.Intermediate", self.validate_strings[status])
+		self.assertEqual("-17,", result_string)
+		self.assertEqual(4, pos)
 
 	def test_validate_177(self):
 		(status, result_string, pos) = self.validator.validate("177", 3)
@@ -287,7 +328,7 @@ class TestNumericFormating(unittest.TestCase):
         new_string = '0xFF0'
         (value, ok) = self.us_locale.toDecimal(new_string, 0)
         self.assertEqual( new_string, '0xFF0', msg = 'numbers passed are not modified')
-        a_string = str('      100')
+        a_string = '      100'
         self.assertEqual( ok,    True,  msg = "hex numbers without commas parse successfully")
         self.assertEqual( value, 0xFF0, msg = "hex numbers without commas parse correctly")
         
@@ -369,6 +410,11 @@ class TestSpacedCryptoCurrencyValidator(unittest.TestCase):
 		(status, result_string, pos) = self.validator.validate("1", 1)
 		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
 		self.assertEqual(("         1", 10), (result_string, pos))
+	
+	def test_cryptocurrency_validator_m1(self):
+		(status, result_string, pos) = self.validator.validate("-1", 1)
+		self.assertEqual("QValidator.Acceptable", self.validate_strings[status])
+		self.assertEqual(("        -1", 9), (result_string, pos))
 
 	def test_cryptocurrency_validator_17(self):
 		(status, result_string, pos) = self.validator.validate("         17", 11)

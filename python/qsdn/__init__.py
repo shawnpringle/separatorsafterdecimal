@@ -201,19 +201,23 @@ class Locale(QLocale) :
 				print('toDecimal(%s, None)' % (s,))
 			else:
 				print('toDecimal(%s, %d)' % (s, base,))
+		polarity = 1
 		comma = self.groupSeparator()
 		point = self.decimalPoint()
 		# derive the base if not set above.
 		# here a copy is made, the original s will not be
 		# modified.
 		s = s.strip()
+		if s.startswith(self.negativeSign()):
+			polarity = -1
+			s = s[len(self.negativeSign()):]
 		if base == 0:
 			if s.casefold().startswith('0x'):
-				return self._toNumber(s[2:], 16, zero)
+				return polarity * self._toNumber(s[2:], 16, zero)
 			elif s.startswith('0'):
-				return self._toNumber(s[1:], 8, zero)
+				return polarity * self._toNumber(s[1:], 8, zero)
 			else:
-				return self._toNumber(s, 10, zero)
+				return polarity * self._toNumber(s, 10, zero)
 		# seemingly pointless, the code below
 		# avoids issues where two variables point to the same data
 		v = zero + zero
@@ -237,7 +241,7 @@ class Locale(QLocale) :
 					# two decimal point characters is bad
 					if debug_mode:
 						print("Returning bad for double .")
-					return (v/base**shift, False)
+					return (polarity * v/base**shift, False)
 				add_shifts = True
 			else:
 				to_add = ord(c) - ord(self.zeroDigit())
@@ -260,8 +264,9 @@ class Locale(QLocale) :
 				else:
 					if debug_mode:
 						print("Returning bad for illegal character %s .", (c,))
-					return (v / base**shift, False)
+					return (polarity * v / base**shift, False)
 		v /= base ** shift
+		v *= polarity
 		return (v, are_there_digits)
 		
 	def toDecimal(self, s, base = 10):
@@ -542,6 +547,12 @@ class Locale(QLocale) :
 			return (ans,True)
 		else:
 			return (ans,False)
+			
+	def mandatoryDecimals(self):
+		return self._mandatory_decimals
+		
+	def maximumDecimals(self):
+		return self._maximum_decimals
 
 	def __eq__(self, other):
 		if other.__class__ is not Locale:
@@ -566,7 +577,40 @@ class NumericValidator(QValidator) :
 		self.setLocale( Locale() )
 		
 		
+		
+		
+		
 	def validate(self, s, pos):
+		debug = False
+		if debug:
+			print("Running for -.42")
+		
+		sign_str = ''
+		if not s.startswith(self._locale.negativeSign()):
+			if debug:
+				print("not a neg sign?")
+			return self.validate_positive(s, pos)
+		
+		sign_str = self._locale.negativeSign()
+		if len(s) == 1:
+			if debug:
+				print("deemed intermediate")
+			return QValidator.Intermediate, s, pos
+				
+		if pos == 0:
+			if debug:
+				print("delegated to validate_positive without pos")
+			(status, s, throw_away) =  self.validate_positive(s[1:], 0)
+			return (status, sign_str+s, 0)
+		
+		if debug:
+			print("delegated to validate_positive with pos")
+		(status, s, pos) = self.validate_positive(s[1:], pos-1)
+		return (status, sign_str+s, pos+1)
+				
+		
+		
+	def validate_positive(self, s, pos):
 		try:
 			if s == "debugparty":
 				debug = True
@@ -750,6 +794,7 @@ class LimitingNumericValidator(NumericValidator) :
 		self.characters_before_decimalPoint = maximum_decamals * 4 // 3
 		self.characters_after_decimalPoint = maximum_decimals * 4 // 3
 		self._locale = None
+		self._debug  = False
 		self.setLocale( Locale() )
 	
 	def decimals(self):
@@ -779,8 +824,10 @@ class LimitingNumericValidator(NumericValidator) :
 
 	def _correct_white(self, s, pos):
 		# Make it such that the number of characters before the decimal point is self.characters_before_decimalPoint by adding or removing spaces and returning a new position such that this new position will be between the same digits as the position indicated by pos.
-		whole_part = QRegExp(str('^ *((\d|') + self._locale.groupSeparator() + ')*)')
+		whole_part = QRegExp(str('^ *(' + self._locale.negativeSign() + '?(\d|') + self._locale.groupSeparator() + ')*)')
 		whole_part.indexIn(s)
+		if self._debug:
+			print("Whole part is ", whole_part)
 		decimalPoint_location = whole_part.matchedLength()
 		assert(decimalPoint_location in range(0, len(s)+1))
 		if self.spaced:
@@ -807,7 +854,7 @@ class LimitingNumericValidator(NumericValidator) :
 	def validate(self, s, pos):
 		""" Validates s, by adjusting the position of the commas to be in the correct places and adjusting pos accordingly as well as space in order to keep decimal points aligned when varying sized numbers are put one above the other.
 		"""
-		debug = False
+		debug = self._debug
 		if debug:
 			print('Call to self.validate(%s,%d)' % (s.__repr__(),pos,))
 			print((len('Call to self.validate(') + pos) * ' ' + '^')
@@ -963,9 +1010,12 @@ class LimitingNumericValidator(NumericValidator) :
 		space_part = ' *' if self.spaced else ''
 		decimalPoint = QRegExp.escape(str(self._locale.decimalPoint()))
 		groupSeparator = QRegExp.escape(str(self._locale.groupSeparator()))
+		negativeSign  = QRegExp.escape(self._locale.negativeSign())
 		self.proper_re = QRegExp('^(' + space_part + \
-			'\d{1,3}(' + groupSeparator + '\d{3})*)(' + decimalPoint + '((\d{3}' + groupSeparator + ')*\d{1,3})?)?')
-		self.improper_decimal_re = QRegExp('^( *)(([\d' + groupSeparator + ']*)(' + decimalPoint + '([\d' + groupSeparator + ']*))?)')
+			negativeSign + '?\d{1,3}(' + groupSeparator + '\d{3})*)' \
+			'(' + decimalPoint + '((\d{3}' + groupSeparator + ')*\d{1,3})?)?')
+		self.improper_decimal_re = QRegExp('^( *)(' + self._locale.negativeSign() \
+			+ '?([\d' + groupSeparator + ']*)(' + decimalPoint + '([\d' + groupSeparator + ']*))?)')
 		self.localeSet.emit(plocale)
 		
 

@@ -3,10 +3,12 @@ import setuptools
 with open("doc/build/text/index.txt", "r", encoding='utf-8') as fh:
     long_description = fh.read()
     
+if long_description is None:
+	print("Error reading file")
 
 setuptools.setup(
     name="qsdn",
-    version="1.0.0",
+    version="1.0.4",
     author="Shawn.Pringle",
     author_email="shawn.pringle@gmail.com",
     description="Python Qt5 Classes that Display and Parse Numbers using Standard Decimal Notation",
