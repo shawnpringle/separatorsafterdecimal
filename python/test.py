@@ -302,6 +302,7 @@ class CryptoCurencyUnspacedValidator(unittest.TestCase):
 class TestNumericFormating(unittest.TestCase):
     def setUp(self):
         self.us_locale = IQLocale("en_US")
+        self.us_locale_2 = IQLocale("en_US", 2)
 
     def test_decimal_american_english(self):  
         TESTINPUT=0
