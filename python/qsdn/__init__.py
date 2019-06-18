@@ -340,9 +340,9 @@ class Locale(QLocale) :
 		dpl = st.find(self.decimalPoint())
 		if x.__class__ != D:
 			if dpl == -1 and self._mandatory_decimals:
-				st.append(self.decimalPoint() + digit_map[0].repeated(self._mandatory_decimals))
+				st += (self.decimalPoint() + digit_map[0] * (self._mandatory_decimals))
 			if dpl != -1 and len(st) - dpl - 1 < self._mandatory_decimals:
-				st.append(digit_map[0].repeated(self._mandatory_decimals - len(st) + dpl + 1))
+				st += (digit_map[0] * (self._mandatory_decimals - len(st) + dpl + 1))
 			if dpl != -1 and len(st) - dpl - 1 > self._maximum_decimals:
 				st.truncate(dpl+self._maximum_decimals+1)
 			if dpl != -1:

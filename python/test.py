@@ -392,7 +392,11 @@ class TestNumericFormating(unittest.TestCase):
         decimal.setcontext(context)
         self.assertEqual( "0.333,33", self.us_locale.toString((D("1")/3).quantize(D('0.00001'))) , msg= "1/3" )
         self.assertEqual( "0.50", self.us_locale.toString(D("1").quantize(D('0.01'))/2), msg= "1/2" )
-                
+    
+    def test_mandatory_param(self):
+    	self.assertEqual("3.00", self.us_locale_2.toString(3), "3 dollars")
+    	self.assertEqual("3.50", self.us_locale_2.toString(3.5), "3.50")
+    	self.assertEqual("3.125", self.us_locale_2.toString(3.125), "3.125 no truncation")
                                             
 class TestSpacedCryptoCurrencyValidator(unittest.TestCase):
 	def setUp(self):
