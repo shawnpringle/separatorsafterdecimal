@@ -24,4 +24,5 @@ setuptools.setup(
     install_requires=[
           'PyQt5',
     ],
+    download_url="https://github.com/shawnpringle/separatorsafterdecimal/archive/v0.0.0.tar.gz",
 )
