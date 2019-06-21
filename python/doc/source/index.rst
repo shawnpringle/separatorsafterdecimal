@@ -13,13 +13,13 @@ Contents:
 
 .. automodule:: qsdn
 
-.. autoclass:: QSDNLocale
+.. autoclass:: Locale
     :members:
      
-.. autoclass:: QSDNNumericValidator
+.. autoclass:: NumericValidator
     :members:
 
-.. autoclass:: QSDNLimitedNumericValidator
+.. autoclass:: LimitingNumericValidator
     :members:
 
 Indices and tables
