@@ -8,7 +8,7 @@ if long_description is None:
 
 setuptools.setup(
     name="qsdn",
-    version="1.0.4",
+    version="v0.0.0",
     author="Shawn.Pringle",
     author_email="shawn.pringle@gmail.com",
     description="Python Qt5 Classes that Display and Parse Numbers using Standard Decimal Notation",
@@ -20,5 +20,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+    ],
+    install_requires=[
+          'PyQt5',
     ],
 )

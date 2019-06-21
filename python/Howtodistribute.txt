@@ -1,58 +1,116 @@
-Python Module Distribution
+PYTHON MODULE DISTRIBUTION
 --------------------------
 
-Go into the doc directory and type 'make text'.
+Before Starting!
+----------------
 
-    Install pip and then:
+Make sure you have virtualenv.  You may need to install pip and then 
+virtualenv with pip.
+
+
+Update Things
+-------------
+
+The major version number should go up if something that had already existed in 
+another release was changed.   The minor number should go up if something new
+was added.  And the patch version should go up if there was a bug fix.
+
+version is set in setup.py, you should also version tag in Git the same version
+and set the download_url to a what this package will be.
+
+You must create your environments and test your code.
+
+
+Create your Environments
+------------------------
+
+
+UNIT TESTER ENVIRONMENT:
+Go to the drive with the most space and:
+
+Create a virtual env for basic unittesting
+    python -m virtualenv tester
     
-    python -m pip install --user --upgrade setuptools wheel sphinx
-    python -m pip install --user --upgrade twine
+Create another shell, and activate the environment:
+    tester\scripts\activate
+    
+Install the sole dependency PyQt5
+    pip install PyQt5
 
-Then run:
+Exit the shell to leave the environment    
+    
+INSTALLER ENVIRONMENT:
+Create a virtual env
+    python -m virtualenv installer
+    
+Create another shell, and activate the environment:
+    installer\scripts\activate
+    
+Run:    
+    pip install PyQt5   
+
+    
+INSTALL TESTER ENVIRONMENT:
+
+
+Test the Code
+-------------
+
+Create another shell, and activate the environment:
+    tester\scripts\activate
+    cd python
+    python -m unittest
+
+
+
+
+Create your Package
+-------------------
+
+Start another shell and activate the installer environment:
+    installer\scripts\activate
+
+Go into the doc directory and type:
+
+    make text
+
+Go back to the python directory and then run:
     
     python setup.py sdist bdist_wheel
-    python -m twine upload -u Shawn.Pringle --repository-url https://test.pypi.org/legacy/ dist/*
+  
     
+The Test PyPi
+-------------
+    
+First upload the package you built to the test site:
+    python -m twine upload -u Shawn.Pringle --repository-url https://test.pypi.org/legacy/ dist/*
 Supply the password that you use on the test site.
 
-Go to some temporary directory like C:\TEMP and type: 
 
-    python -m virtualenv ENV
+Install from the internet
+   python -m pip install --index-url https://test.pypi.org/simple/  qsdn
+
+
+Now create and activate a new install test environment and then copy the test.py file to some
+empty directory.
+
+Go to some temporary directory like C:\TEMP and type:    
+   itester\Scripts\activate.bat
+   pip install PyQt5
     
-Run:
-    cd ENV
-    cmd
-    ENV\Scripts\activate.bat
-    
-    Then do: python -m pip install --index-url https://test.pypi.org/simple/  qsdn
-    
-    Now try:
-    python
-      >>> import qsdn
-      >>> le = qsdn.QSDNLocale('en_US')
-      >>> le.toDecimal("14,050")
-      (Decimal('14050'), True)
-      >>> le.toDecimal("0.000,001", 10)
-      (Decimal('0.000001'), True)
-      >>> ans = le.toDecimal("0.000,000,1",10)
-      >>> ans
-      (Decimal('1E-7'), True)
-      >>> le.toString(ans[0])
-      '0.000,000,1'
-      >>> quit()
       
-   copy test.py from the source distribution to this ENV directory and run
+copy test.py from the source distribution to this itester directory 
+and run
    python -m unittest
-   
-   
    All tests should finish OK.
    
    
-If there have been no failures with the tests, it is time to make a real release:
-    get back to the source distribution directory in python
-    python -m twine upload -u Shawn.Pringle --repository-url https://test.pypi.org/legacy/ dist/*
-    
-      
+Now upload the package to PyPi
+     twine upload dist/*
      
+     
+Other Notes
+-----------
 
-
+There is more helpful ideas here
+https://medium.com/@joel.barmettler/how-to-upload-your-python-package-to-pypi-65edc5fe9c56
