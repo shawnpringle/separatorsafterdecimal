@@ -21,7 +21,7 @@ typedef long int int64_t;
 #endif
 
 
-static int snprintpicomma( char * buffer, int slen, positive_int n ) {
+static int snprintpicomma( char * buffer, size_t slen, positive_int n ) {
 	int left_side, right_side;
 	if (n < 1000) {
 		return snprintf (buffer, slen, "%d", n);
@@ -34,7 +34,7 @@ static int snprintpicomma( char * buffer, int slen, positive_int n ) {
 	return left_side + right_side;
 }
 
-int snprinticomma ( char * buffer, int slen, long int n) {
+int snprinticomma ( char * buffer, size_t slen, long int n) {
 	int result;
 	if (n < 0) {
 		if (slen < 2)    		return -1;
@@ -63,7 +63,7 @@ static void reverse(char * buffer) {
 }
 
 
-int snprintgcomma( char * buffer, int slen, double f ) {
+int snprintgcomma( char * buffer, size_t slen, double f ) {
 	long int n = floor(f);
 	int integer_len;
 	char * integer_part = buffer;
@@ -103,12 +103,15 @@ int snprintgcomma( char * buffer, int slen, double f ) {
 /* 10**8 */
 const int SATOSHISPERCOIN = 100000000;
 
-int snprinti_bitcoin(char * buffer, int slen, int64_t n) {
+int snprinti_bitcoin(char * buffer, size_t slen, int64_t n, unsigned short mandatory_decimal_places = 0) {
 	int64_t f;
 	*buffer = '\0';
+	unsigned short int actual_decimals = 0;
 	int ret, integer_len;
 	// sanitize
+	if (mandatory_decimal_places > 8) return -1;
 	if (n > INT64_MAX || n < -INT64_MAX) return -1;
+	// handle negative case
 	if (n < 0) {
 		integer_len = snprinti_bitcoin(&buffer[1], slen-1, -n);
 		if (integer_len < 0)
@@ -116,15 +119,37 @@ int snprinti_bitcoin(char * buffer, int slen, int64_t n) {
 		buffer[0] = '-';
 		return integer_len+1;
 	}
-	integer_len = ret = snprintf (buffer, slen, "%lld", n / SATOSHISPERCOIN);
+	// do integer part
+	integer_len = ret = snprintf (buffer, slen, "%'lld", n / SATOSHISPERCOIN);
 	if (ret < 0)
 		return ret;
-	if ((f=n % SATOSHISPERCOIN) != 0) {
-		ret = snprintf(&buffer[integer_len], slen - integer_len, ".%3i,%3i,%2i", (short)(f / 100000), (short)(f / 100) % 1000, (short)(f) % 100);
+	// possibly do a fraction part.
+	if ((f=n % SATOSHISPERCOIN) != 0 || mandatory_decimal_places != 0) {
+		ret = snprintf(&buffer[integer_len], slen - integer_len, ".%03i,%03i,%02i", (int)((f / 100000) % 1000), (int)((f / 100) % 1000), (short)(f % 100));
 		if (ret < 0)
 			return ret;
+		actual_decimals = 8;
+		// gobble trailing decimal places.
+		char * zero_byte = &buffer[ret+integer_len-1];
+		while (*zero_byte == '0' || *zero_byte == ',') {
+			if (*zero_byte == '0') {
+				// don't strip any more zeroes if we have the actual number of 
+				// decimals equal or greater than the mandatory decimals
+				if (mandatory_decimal_places >= actual_decimals)
+					break;
+				// will remove one when we leave this if/else
+				--actual_decimals;
+			}
+			*zero_byte = '\0';
+			--zero_byte;
+			--ret;
+		}
+		if (*zero_byte == '.')
+			*zero_byte = '\0';
 		return integer_len + ret;
 	}
-
+	char * dot_loc = strchr(buffer, '.');
+	if (dot_loc != NULL) {
+	}
 	return ret;
 }

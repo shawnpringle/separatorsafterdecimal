@@ -15,6 +15,13 @@ struct dtest_case {
 	char * result;
 };
 
+struct btctest_case {
+	uint64_t in;
+	char * result0;
+	char * result3;
+	char * result8;
+};
+
 
 int main (void) {
 	char experiment[100];
@@ -26,7 +33,18 @@ int main (void) {
 		"-1,234,567,890", "-123,456", "-12,345", "-1,000", "-999", "-1", "0", "1", "999",
 		"1,000", "12,345", "123,456", "1,234,567,890" 			};
 	const struct dtest_case gx[] = { {3.141592, "3.141,592"}, {-0.22222222L,"-0.222,222,22"} };
-
+    const struct btctest_case btc[] = { 
+    	{0, "0", "0.000", "0.000,000,00"}, 
+    	{1, "0.000,000,01", "0.000,000,01", "0.000,000,01"},
+    	{10, "0.000,000,1", "0.000,000,1", "0.000,000,10"},
+    	{100,"0.000,001", "0.000,001", "0.000,001,00"}, 
+    	{10000, "0.000,1", "0.000,1", "0.000,100,00"},
+    	{5000000LL, "0.05", "0.050", "0.050,000,00"},
+    	{10000000LL, "0.1", "0.100", "0.100,000,00"},
+    	{314159200, "3.141,592", "3.141,592", "3.141,592,00"},
+    	{1000000000000L, "10,000", "10,000.000", "10,000.000,000,00"}
+    };
+    	
 
 	int *px = x;
 	char **pr = r;
@@ -54,6 +72,37 @@ int main (void) {
 		   "  Should be %d but got %d\n", pd->in, strlen(experiment), rlen);
 		}
 		pd++;
+	}
+
+	struct btctest_case * pb = btc;
+	while (pb != &(btc[sizeof(btc)/sizeof(*btc)])) {
+		rlen = snprinti_bitcoin(experiment, 100, pb->in);
+		if (strcmp(experiment, pb->result0)) {
+			printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result0, experiment);
+		}
+		if (strlen(experiment) != rlen) {
+		   printf("%-15llu: Returned value from routine does not report the correct written length."
+		   "  Should be %d but got %d\n", pb->in, strlen(experiment), rlen);
+		}
+
+		rlen = snprinti_bitcoin(experiment, 100, pb->in, 3);
+		if (strcmp(experiment, pb->result3)) {
+			printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result3, experiment);
+		}
+		if (strlen(experiment) != rlen) {
+		   printf("%-15llu: Returned value from routine does not report the correct written length."
+		   "  Should be %d but got %d\n", pb->in, strlen(experiment), rlen);
+		}
+
+		rlen = snprinti_bitcoin(experiment, 100, pb->in, 8);
+		if (strcmp(experiment, pb->result8)) {
+			printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result8, experiment);
+		}
+		if (strlen(experiment) != rlen) {
+		   printf("%-15llu: Returned value from routine does not report the correct written length."
+		   "  Should be %d but got %d\n", pb->in, strlen(experiment), rlen);
+		}
+		pb++;
 	}
 
 	return 0;

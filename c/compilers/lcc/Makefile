@@ -10,21 +10,18 @@ LIBS=
 EXE=sdn.dll
 
 $(EXE):$(OBJS) Makefile
-	$(LINKER) sdn.def -dll -o sdn.dll $(OBJS) $(LIBS)
+	$(LINKER) sdn.def -dll -nounderscores -o sdn.dll $(OBJS) $(LIBS)
 
-# Build sdn.c
-SDN_C=\
-
-sdn.obj: $(SDN_C) ..\..\sdn.c
-	$(CC) -c $(CFLAGS) ..\..\sdn.c
 
 # Build sdnapi.c
-
-sdnapi.obj: ..\..\sdnapi.c
+sdnapi.obj: ..\..\sdnapi.c ..\..\sdn.h
 	$(CC) -c $(CFLAGS) ..\..\sdnapi.c
 
-link:
-	$(LINKER) $(SRCDIR)\lcc1\sdn.def  -dll  -o $(SRCDIR)\lcc1\sdn.dll $(OBJS) $(LIBS)
-
+paxdiablo.obj:  ..\..\paxdiablo.c ..\..\sdn.h
+	$(CC) -c $(CFLAGS) -I..\.. ..\..\paxdiablo.c 
+	
+sdntest: paxdiablo.obj sdnapi.obj
+	$(LINKER) -o sdntest.exe sdnapi.obj paxdiablo.obj
+	
 clean:
-	del $(OBJS) sdn.dll
+	del $(OBJS) sdn.dll paxdiablo.obj sdntest.exe
