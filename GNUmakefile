@@ -1,19 +1,19 @@
 all: test docs
-
+include os.mak
 VERSION=0.1.0rc1
 
 test :
-	(cd python;python ./test.py && cp qsdn.py qsdn.py.bak)
+	(cd python;$(PYTHON) ./test.py && cp qsdn.py qsdn.py.bak)
 	
 
 docs doc : doc/build/latex/StandardDecimalNotation.pdf doc/build/singlehtml/index.html
 	
 dist : StandardDecimalNotation-${VERSION}.tar.gz
 	
-doc/build/latex/StandardDecimalNotation.pdf doc/build/singlehtml/index.html : doc/source/_static doc/source/_templates python/qsdn.py
+doc/build/latex/StandardDecimalNotation.pdf doc/build/singlehtml/index.html : doc/source/_static doc/source/_templates python/qsdn/__init__.py
 	cd doc; make singlehtml latexpdf
 
-StandardDecimalNotation-0.1.0rc1.tar.gz : doc/build/latex/StandardDecimalNotation.pdf doc/build/singlehtml/index.html python/qsdn.py LICENSE README.md python/setup.py CHANGES.txt GNUmakefile dist
+StandardDecimalNotation-0.1.0rc1.tar.gz : doc/build/latex/StandardDecimalNotation.pdf doc/build/singlehtml/index.html python/qsdn/__init__.py LICENSE README.md python/setup.py CHANGES.txt GNUmakefile dist
 	mkdir -p StandardDecimalNotation/standarddecimalnotation/docs
 	cp -r doc/build/latex/StandardDecimalNotation.{pdf,tex} doc/build/singlehtml StandardDecimalNotation/standarddecimalnotation/docs
 	cp CHANGES.txt LICENSE python/setup.py StandardDecimalNotation
@@ -42,6 +42,6 @@ doc/source/_templates :
 	mkdir -p doc/source/_templates
 	
 install :
-	(cd StandardDecimalNotation;[ `id -u ` == 0 ] &&  python setup.py install  || python setup.py install --user)	
+	(cd StandardDecimalNotation;[ `id -u ` == 0 ] &&  $(PYTHON) setup.py install  || $(PYTHON) setup.py install --user)	
 	
 .PHONY: test doc docs dist distclean realclean install
