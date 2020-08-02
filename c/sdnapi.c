@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 #include "sdn.h"
 #ifdef WIN32__
 #include <windows.h>
@@ -14,6 +15,7 @@ BOOL WINAPI DllMain(
 	return TRUE;
 }
 #endif
+#include <assert.h>
 
 #ifndef INT64_MAX
 #define INT64_MAX LONG_MAX
@@ -62,43 +64,205 @@ static void reverse(char * buffer) {
 	}
 }
 
-
-int snprintgcomma( char * buffer, size_t slen, double f ) {
-	long int n = floor(f);
-	int integer_len;
-	char * integer_part = buffer;
-	if (f > INT_MAX || f < INT_MIN)		return -1;
-	if (f < 0.0) {
-		integer_len = snprintgcomma(&buffer[1], slen-1, -f);
-		if (integer_len < 0)			return integer_len;
-		buffer[0] = '-';
-		return integer_len+1;
-	}
-	double fraction_part = f - n;
-	long int reversed_fraction_part;
-	if (fraction_part < 0)		fraction_part = - fraction_part;
-	integer_len = snprintpicomma(integer_part, slen, n);
-	if (integer_len < 0)		return integer_len;
-	if (fraction_part > 0) {
-		slen -= integer_len - 1;
-		buffer[integer_len] = '.';
-		//printf("@%s\n", buffer);
-
-		char * fraction_part_str = integer_part + integer_len + 1;
-		if (snprintf(fraction_part_str, slen, "%.16g", fraction_part) < 0)	return -1;
-		//printf("#%s\n", buffer);
-		reverse(fraction_part_str);
-		char * dot_loc = strchr(fraction_part_str, '.');
-		if (dot_loc != NULL)			*dot_loc = '\0';
-		//printf("$%s\n", buffer);
-		if (sscanf(fraction_part_str, "%ld", &reversed_fraction_part) != 1)		return -1;
-		int fraction_len = snprintpicomma(fraction_part_str, slen, reversed_fraction_part);
-		if (fraction_len < 0)			return fraction_len;
-		reverse(fraction_part_str);
-		return integer_len + 1 + fraction_len;
-	}
-	return integer_len;
+static short min(short a, short b) {
+	if (a<b)
+		return a;
+	else
+		return b;
 }
+
+
+int snprintgcomma( char * buffer, size_t slen, double n ) {
+	static long double l000_power_g_cap = 1;
+	static short g_cap;
+	short g = 0;
+	long double l000tog = l000_power_g_cap;
+	char * p = buffer;
+	int byte_count = 0;
+	int these_characters, these_digits;
+	
+	/* the total number of bytes printed out */
+	int total_bytes = 0;
+	
+	/* how many groups were printed out */
+	int digit_count = 0;
+	
+	/* after group_count_max more is just noise not in the original bits of the number even for long doubles*/
+	int digit_count_max = 16;
+	
+	memset(buffer, 0, slen);
+	
+	/* generate our limits if necessary */
+	if (l000_power_g_cap == 1) {
+		for (int i = 0; i < 
+	#ifdef LDBL_MAX_10_EXP
+		LDBL_MAX_10_EXP
+	#elif defined(DBL_MAX_10_EXP)
+		DBL_MAX_10_EXP
+	#else
+		37
+	#endif
+	; i+=3) {
+			l000_power_g_cap *= 1000;
+			g_cap += 1;
+			/*printf("10**%d\n", i);*/
+		}
+	}
+	
+	/* handle negative case */
+	if (n < 0) {
+		if (slen < 2)  return -1;
+		*buffer = '-';
+		int result = snprintgcomma(&buffer[1], slen-1, -n);
+		return result < 0 ? result : result + 1;
+	}
+	
+	
+	/* For the first group: */
+	l000tog = l000_power_g_cap;
+	for (g = g_cap; g >= 0; --g, l000tog/=1000.0) {
+
+		/*printf("10**(3*%d)\n", g);*/
+		if ((these_digits = n/l000tog) != 0 || (g == 0)) {
+			if ((byte_count = snprintf(p,  slen, "%d", these_digits)) < 0) {
+					return byte_count;
+			}
+			slen -= byte_count;
+			p += byte_count;
+			total_bytes += byte_count;
+			
+			n -= these_digits * l000tog;
+			l000tog /= 1000.0;
+			--g;
+			digit_count = byte_count;
+			
+			break;
+		}
+	}
+	assert(total_bytes);
+	
+	/* For subsequent groups */
+	
+	for (; g >= 0; --g, l000tog/=1000) {
+		these_digits = (int)(n/l000tog);
+		n -= these_digits * l000tog;
+		byte_count = snprintf(p, slen, ",%03d", these_digits);
+		// should always be 4
+		if (byte_count != 4) {
+			if (byte_count >= 0) {
+				printf("byte count=%d, digits=%d, string so far %s\n", byte_count, these_digits, buffer);
+			}
+			assert(byte_count < 0);
+			return byte_count;
+		}
+		slen -= byte_count;
+		total_bytes += 4;
+		p += 4;
+		digit_count += 3;
+	}
+	assert(g == -1);
+	assert(l000tog < 1);
+	
+	if (digit_count >= digit_count_max || slen < 2) {
+		return total_bytes;
+	}
+
+	short decimal_digits = digit_count_max - digit_count;
+	short exp10 = 0;
+	short offset = decimal_digits % 3;
+	l000tog = 1;
+	g = 0;
+	for (int i = 3; i < decimal_digits; i+=3) {
+		l000tog *= 1000.0;
+		exp10 += 3;
+		g += 1;
+	}
+	n *= l000tog * 1000;
+	exp10 += 3;
+	++g;		
+	
+	*p = '.';
+	--slen;
+	++total_bytes;
+	++p;
+	
+	/* For the first group: */
+	switch (decimal_digits) {
+		case 0:
+			return total_bytes;
+		case 1:
+			++digit_count;
+			these_digits = (int)(n/(100*l000tog));
+			n -= 10*l000tog * these_digits;
+			byte_count = snprintf(p, slen, "%1d", these_digits);
+		case 2:
+			digit_count += 2;
+			decimal_digits -= decimal_digits;
+			these_digits = ((int)(n/(10*l000tog))) ;
+			n -= 100*l000tog * these_digits;
+			byte_count = snprintf(p, slen, "%02d", these_digits);
+		default:
+			digit_count += 3;
+			these_digits = ((int)(n/l000tog));
+			n -= l000tog * these_digits;
+			byte_count = snprintf(p, slen, "%03d", these_digits);
+	}
+	
+	if (byte_count < 0) {
+		return byte_count;
+	}
+	slen -= byte_count;
+	total_bytes += byte_count;
+	p += byte_count;
+	digit_count += byte_count;
+	decimal_digits -= byte_count;
+	
+	if (decimal_digits <= 0) {
+		return total_bytes;
+	}
+	
+	decimal_digits -= 3;
+	--g;
+	l000tog /= 1000;
+	
+	/* For the following groups: */
+	for (; n >= 1.0 && g >= 0 && (digit_count < digit_count_max) && slen > 3; --g, l000tog/=1000) {
+		these_digits = (int)(n/l000tog + 0.5);
+		if (these_digits >= 1000) {
+			these_digits = 999;
+		} else if (these_digits < 0) {
+			these_digits = 0;
+		}
+		n -= these_digits * l000tog;
+		switch (digit_count_max - digit_count) {
+		case 2:
+			byte_count = snprintf(p, slen, "%2d", these_digits/10);
+		case 1:
+			byte_count = snprintf(p, slen, "%1d", these_digits/100);
+		default:
+			byte_count = snprintf(p, slen, ",%03d", these_digits);
+		}
+		// should always be 4
+		if (byte_count != 4) {
+			if (byte_count >= 0) {
+				printf("byte count=%d, digits=%d, string so far %s\n", byte_count, these_digits, buffer);
+			}
+			assert(byte_count < 0);
+			return byte_count;
+		}
+		slen -= byte_count;
+		total_bytes += 4;
+		p += 4;
+		digit_count += 3;
+	}
+		
+	for (--p; *p == '0' || *p == ',' || *p == '.'; --p) {
+		*p = '\0';
+	}
+	
+	return total_bytes;
+}
+
 
 /* 10**8 */
 const int SATOSHISPERCOIN = 100000000;

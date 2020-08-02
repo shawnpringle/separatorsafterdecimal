@@ -10,6 +10,9 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <assert.h>
+#include <float.h>
+
 struct dtest_case {
 	double in;
 	char * result;
@@ -22,7 +25,6 @@ struct btctest_case {
 	char * result8;
 };
 
-
 int main (void) {
 	char experiment[100];
 	size_t  rlen;
@@ -32,7 +34,7 @@ int main (void) {
 	const char* r[] = {
 		"-1,234,567,890", "-123,456", "-12,345", "-1,000", "-999", "-1", "0", "1", "999",
 		"1,000", "12,345", "123,456", "1,234,567,890" 			};
-	const struct dtest_case gx[] = { {3.141592, "3.141,592"}, {-0.22222222L,"-0.222,222,22"} };
+	const struct dtest_case gx[] = { {3.141592, "3.141,592"}, {-0.22222222L,"-0.222,222,22"}, {"0.12345", "0.123,45" } };
     const struct btctest_case btc[] = { 
     	{0, "0", "0.000", "0.000,000,00"}, 
     	{1, "0.000,000,01", "0.000,000,01", "0.000,000,01"},
@@ -104,6 +106,9 @@ int main (void) {
 		}
 		pb++;
 	}
-
+	
+	snprintgcomma(experiment, rlen, 100000000000000000.0);
+	printf("A very large number %s\n", experiment);
+	printf("Long doubles have size %d\n", sizeof(long double));
 	return 0;
 }
