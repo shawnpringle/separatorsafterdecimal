@@ -46,8 +46,8 @@ int main (void) {
     };
     	
 
-	int *px = x;
-	char **pr = r;
+	const int *px = x;
+	const char **pr = r;
 	while (px != &(x[sizeof(x)/sizeof(*x)])) {
 		rlen = snprinticomma(experiment, 100, *px);
 		if (strcmp(experiment, *pr)) {
@@ -61,7 +61,7 @@ int main (void) {
 		px++;
 	}
 
-	struct dtest_case * pd = gx;
+	const struct dtest_case * pd = gx;
 	while (pd != &(gx[sizeof(gx)/sizeof(*gx)])) {
 		rlen = snprintgcomma(experiment, 100, pd->in);
 		if (strcmp(experiment, pd->result)) {
@@ -74,9 +74,9 @@ int main (void) {
 		pd++;
 	}
 
-	struct btctest_case * pb = btc;
+	const struct btctest_case * pb = btc;
 	while (pb != &(btc[sizeof(btc)/sizeof(*btc)])) {
-		rlen = snprinti_bitcoin(experiment, 100, pb->in);
+		rlen = snprinti_bitcoin(experiment, 100, pb->in, 0);
 		if (strcmp(experiment, pb->result0)) {
 			printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result0, experiment);
 		}

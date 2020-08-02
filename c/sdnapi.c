@@ -50,13 +50,13 @@ int snprinticomma ( char * buffer, size_t slen, long int n) {
 
 
 static void swap(char * a, char * b) {
-	static char c = *a;
+	char c = *a;
 	*a = *b;
 	*b = c;
 }
 
 static void reverse(char * buffer) {
-	static int len = strlen(buffer);
+	int len = strlen(buffer);
 	for (int i = 0; i < len/2; ++i) {
 		swap(&buffer[i], &buffer[len-1-i]);
 	}
@@ -103,7 +103,7 @@ int snprintgcomma( char * buffer, size_t slen, double f ) {
 /* 10**8 */
 const int SATOSHISPERCOIN = 100000000;
 
-int snprinti_bitcoin(char * buffer, size_t slen, int64_t n, unsigned short mandatory_decimal_places = 0) {
+int snprinti_bitcoin(char * buffer, size_t slen, int64_t n, unsigned short mandatory_decimal_places) {
 	int64_t f;
 	*buffer = '\0';
 	unsigned short int actual_decimals = 0;
@@ -113,7 +113,7 @@ int snprinti_bitcoin(char * buffer, size_t slen, int64_t n, unsigned short manda
 	if (n > INT64_MAX || n < -INT64_MAX) return -1;
 	// handle negative case
 	if (n < 0) {
-		integer_len = snprinti_bitcoin(&buffer[1], slen-1, -n);
+		integer_len = snprinti_bitcoin(&buffer[1], slen-1, -n, 0);
 		if (integer_len < 0)
 			return integer_len;
 		buffer[0] = '-';
