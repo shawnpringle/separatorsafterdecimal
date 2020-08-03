@@ -64,6 +64,7 @@ int main (void) {
 			for (int i = rlen+1; i < 99; ++i) {
 				if (experiment[i] != 'A') {
 					printf("%-15d:Buffer overrun for case %s with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", *px, *pr, len, i, rlen+1);
+					printf("%s\n", experiment);
 					buffer_not_overran_flag = 0;
 					break;
 				}
@@ -74,57 +75,98 @@ int main (void) {
 			if (buffer_not_overran_flag && strlen(*pr) != rlen) {
 			   printf("%-15d: Returned value from routine does not report the correct written length."
 			   "  Passed in %d.  Should be %d but got %d\n", *px, len, strlen(*pr), rlen);
+			   required_size_not_wrong_flag = 0;
 			}
 			pr++;
 			px++;
 		}
-	}
+		
+		
 	
+		const struct dtest_case * pd = gx;
+		while (pd != &(gx[sizeof(gx)/sizeof(*gx)])) {
+			memset(experiment, 'A', 99);
+			experiment[99] ='\0';
+			rlen = snprintgcomma(experiment, len, pd->in);
+			for (int i = rlen+1; i < 99; ++i) {
+				if (experiment[i] != 'A') {
+					printf("%-15g:Buffer overrun for case %s '%s' with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", pd->in, pd->result, experiment, len, i, rlen);
+					buffer_not_overran_flag = 0;
+					break;
+				}
+			}
+			if (buffer_not_overran_flag && strcmp(experiment, pd->result)) {
+				printf ("%-15g: Expected %s but got %s\n", pd->in, pd->result, experiment);
+			}
+			if (buffer_not_overran_flag && strlen(experiment) != rlen) {
+			   printf("%-15g: Returned value from routine does not report the correct written length."
+			   "  Should be %d but got %d\n", pd->in, strlen(experiment), rlen);
+			   required_size_not_wrong_flag = 0;
+			}
+			pd++;
+		}
 	
-
-	const struct dtest_case * pd = gx;
-	while (pd != &(gx[sizeof(gx)/sizeof(*gx)])) {
-		rlen = snprintgcomma(experiment, 100, pd->in);
-		if (strcmp(experiment, pd->result)) {
-			printf ("%-15g: Expected %s but got %s\n", pd->in, pd->result, experiment);
-		}
-		if (strlen(experiment) != rlen) {
-		   printf("%-15g: Returned value from routine does not report the correct written length."
-		   "  Should be %d but got %d\n", pd->in, strlen(experiment), rlen);
-		}
-		pd++;
-	}
-
-	const struct btctest_case * pb = btc;
-	while (pb != &(btc[sizeof(btc)/sizeof(*btc)])) {
-		rlen = snprinti_bitcoin(experiment, 100, pb->in, 0);
-		if (strcmp(experiment, pb->result0)) {
-			printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result0, experiment);
-		}
-		if (strlen(experiment) != rlen) {
-		   printf("%-15llu: Returned value from routine does not report the correct written length."
-		   "  Should be %d but got %d\n", pb->in, strlen(pb->result0), rlen);
-		}
-
-		rlen = snprinti_bitcoin(experiment, 100, pb->in, 3);
-		if (strcmp(experiment, pb->result3)) {
-			printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result3, experiment);
-		}
-		if (strlen(experiment) != rlen) {
-		   printf("%-15llu: Returned value from routine does not report the correct written length."
-		   "  Should be %d but got %d\n", pb->in, strlen(pb->result3), rlen);
-		}
-
-		rlen = snprinti_bitcoin(experiment, 100, pb->in, 8);
-		if (strcmp(experiment, pb->result8)) {
-			printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result8, experiment);
-		}
-		if (strlen(experiment) != rlen) {
-		   printf("%-15llu: Returned value from routine does not report the correct written length."
-		   "  Should be %d but got %d\n", pb->in, strlen(pb->result8), rlen);
-		}
-		pb++;
-	}
+		const struct btctest_case * pb = btc;
+		while (pb != &(btc[sizeof(btc)/sizeof(*btc)])) {
+			memset(experiment, 'A', 99);
+			experiment[99] ='\0';
+			rlen = snprinti_bitcoin(experiment, len, pb->in, 0);
+			for (int i = rlen+1; i < 99; ++i) {
+				if (experiment[i] != 'A') {
+					printf("%-15d:Buffer overrun for case %s '%s' with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", pb->in, pb->result0, experiment, len, i, rlen);
+					printf("%s\n", experiment);
+					buffer_not_overran_flag = 0;
+					break;
+				}
+			}
+			if (buffer_not_overran_flag && strcmp(experiment, pb->result0)) {
+				printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result0, experiment);
+			}
+			if (buffer_not_overran_flag && strlen(experiment) != rlen) {
+			   printf("%-15llu: Returned value from routine does not report the correct written length."
+			   "  Should be %d but got %d\n", pb->in, strlen(pb->result0), rlen);
+			   required_size_not_wrong_flag = 0;
+			}
 	
+			memset(experiment, 'A', 99);
+			experiment[99] ='\0';
+			rlen = snprinti_bitcoin(experiment, len, pb->in, 3);
+			for (int i = rlen+1; i < 99; ++i) {
+				if (experiment[i] != 'A') {
+					printf("%-15llu:Buffer overrun for case %s '%s' with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", pb->in, pb->result3, experiment, len, i, rlen);
+					buffer_not_overran_flag = 0;
+					break;
+				}
+			}
+			if (buffer_not_overran_flag && strcmp(experiment, pb->result3)) {
+				printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result3, experiment);
+			}
+			if (buffer_not_overran_flag && strlen(experiment) != rlen) {
+			   printf("%-15llu: Returned value from routine does not report the correct written length."
+			   "  Should be %d but got %d\n", pb->in, strlen(pb->result3), rlen);
+			   required_size_not_wrong_flag = 0;
+			}
+	
+			memset(experiment, 'A', 99);
+			experiment[99] ='\0';
+			rlen = snprinti_bitcoin(experiment, len, pb->in, 8);
+			for (int i = rlen+1; i < 99; ++i) {
+				if (experiment[i] != 'A') {
+					printf("%-15llu:Buffer overrun for case %s '%s' with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", pb->in, pb->result8, experiment, len, i, rlen);
+					buffer_not_overran_flag = 0;
+					break;
+				}
+			}
+			if (buffer_not_overran_flag && strcmp(experiment, pb->result8)) {
+				printf ("%-15llu: Expected %s but got %s\n", pb->in, pb->result8, experiment);
+			}
+			if (buffer_not_overran_flag && strlen(experiment) != rlen) {
+			   printf("%-15llu: Returned value from routine does not report the correct written length."
+			   "  Should be %d but got %d\n", pb->in, strlen(pb->result8), rlen);
+				required_size_not_wrong_flag = 0;
+			}
+			pb++;
+		}
+	}
 	return 0;
 }
