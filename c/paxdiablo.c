@@ -25,9 +25,6 @@ struct btctest_case {
 	char * result8;
 };
 
-
-
-
 int main (void) {
 	char experiment[100];
 	size_t  rlen;
@@ -37,6 +34,7 @@ int main (void) {
 	const char* r[] = {
 		"-1,234,567,890", "-123,456", "-12,345", "-1,000", "-999", "-1", "0", "1", "999",
 		"1,000", "12,345", "123,456", "1,234,567,890" 			};
+	
 	const struct dtest_case gx[] = { {3.141592, "3.141,592"}, {-0.22222222L,"-0.222,222,22"}, {0.123456, "0.123,456" }, 
 	{0.12345, "0.123,45" }, {0.1234, "0.123,4" }, {100000000000000000.0, "100,000,000,000,000,000"}, {0.1, "0.1"} };
     const struct btctest_case btc[] = {    	
@@ -52,20 +50,37 @@ int main (void) {
     };
     	
 
-	const int *px = x;
-	const char **pr = r;
-	while (px != &(x[sizeof(x)/sizeof(*x)])) {
-		rlen = snprinticomma(experiment, 100, *px);
-		if (strcmp(experiment, *pr)) {
-			printf ("%-15d: Expected %s but got %s\n", *px, *pr, experiment);
+    int buffer_not_overran_flag = 1;
+    int required_size_not_wrong_flag = 1;
+    int result_string_not_wrong_flag = 1;
+    for (int len = 100; len >= 0; len -= 20) {
+		const int *px = x;
+		const char **pr = r;
+		
+		while (px != &(x[sizeof(x)/sizeof(*x)])) {
+			memset(experiment, 'A', 99);
+			experiment[99] ='\0';
+			rlen = snprinticomma(experiment, len, *px);
+			for (int i = rlen+1; i < 99; ++i) {
+				if (experiment[i] != 'A') {
+					printf("%-15d:Buffer overrun for case %s with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", *px, *pr, len, i, rlen+1);
+					buffer_not_overran_flag = 0;
+					break;
+				}
+			}
+			if (buffer_not_overran_flag && rlen < len && strcmp(experiment, *pr)) {
+				printf ("%-15d: Expected %s but got %s\n", *px, *pr, experiment);
+			}
+			if (buffer_not_overran_flag && strlen(*pr) != rlen) {
+			   printf("%-15d: Returned value from routine does not report the correct written length."
+			   "  Passed in %d.  Should be %d but got %d\n", *px, len, strlen(*pr), rlen);
+			}
+			pr++;
+			px++;
 		}
-		if (strlen(experiment) != rlen) {
-		   printf("%-15d: Returned value from routine does not report the correct written length."
-		   "  Should be %d but got %d\n", *px, strlen(experiment), rlen);
-		}
-		pr++;
-		px++;
 	}
+	
+	
 
 	const struct dtest_case * pd = gx;
 	while (pd != &(gx[sizeof(gx)/sizeof(*gx)])) {

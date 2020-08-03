@@ -22,7 +22,16 @@ BOOL WINAPI DllMain(
 typedef long int int64_t;
 #endif
 
+typedef long int positive_int;
 
+/* Writes a positive long int number (not an unsigned long int) to buffer as
+ * a string.  The number of non-null characters written is
+ * returned.  A null byte will be written to the end of the string.
+ 
+ * If the buffer is NULL or there is not enough size indicated by slen,
+ * it may be partially written and the number of characters that would
+ * have been written is returned.
+ */
 static int snprintpicomma( char * buffer, size_t slen, positive_int n ) {
 	int left_side, right_side;
 	if (n < 1000) {
@@ -32,23 +41,29 @@ static int snprintpicomma( char * buffer, size_t slen, positive_int n ) {
 	if ((left_side = snprintpicomma (buffer, slen, n/1000)) < 0) {
 		return left_side;
 	}
-	right_side = snprintf (&buffer[left_side], slen-left_side, ",%03d", n%1000);
-	if (right_side < 0)		return right_side;
+	if (left_side > slen)
+		right_side = 4;
+	else
+		right_side = snprintf (&buffer[left_side], slen-left_side, ",%03d", n%1000);
+	if (right_side < 0)	
+		return right_side;
 	return left_side + right_side;
 }
 
 int snprinticomma ( char * buffer, size_t slen, long int n) {
 	int result;
 	if (n < 0) {
-		if (slen < 2)    		return -1;
+		if (slen < 2) {
+			return 1 + snprintpicomma(buffer, 0, -n);
+		}
 		*buffer = '-';
-		if (n == INT_MIN) {
+		if (n == LONG_MIN) {
 			return -1;
 		}
 		result = snprintpicomma (&buffer[1], slen-1, -n);
 		return result < 0 ? result : result + 1;
 	}
-	return snprintpicomma (buffer, slen, n);
+	return snprintpicomma(buffer, slen, n);
 }
 
 
