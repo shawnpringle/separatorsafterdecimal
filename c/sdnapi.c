@@ -234,14 +234,7 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 			these_digits = 0;
 		}
 		n -= these_digits * l000tog;
-		switch (digit_count_max - digit_count) {
-		case 2:
-			byte_count = snprintf(p, slen, "%2d", these_digits/10);
-		case 1:
-			byte_count = snprintf(p, slen, "%1d", these_digits/100);
-		default:
-			byte_count = snprintf(p, slen, ",%03d", these_digits);
-		}
+		byte_count = snprintf(p, slen, ",%03d", these_digits);
 		// should always be 4
 		if (byte_count != 4) {
 			if (byte_count >= 0) {
@@ -255,7 +248,7 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 		p += 4;
 		digit_count += 3;
 	}
-		
+	
 	for (--p; *p == '0' || *p == ',' || *p == '.'; --p) {
 		*p = '\0';
 	}
@@ -265,55 +258,55 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 
 
 /* 10**8 */
-const int SATOSHISPERCOIN = 100000000;
+const long double SATOSHISPERCOIN = 100000000;
 
 int snprinti_bitcoin(char * buffer, size_t slen, int64_t n, unsigned short mandatory_decimal_places) {
-	int64_t f;
-	*buffer = '\0';
-	unsigned short int actual_decimals = 0;
-	int ret, integer_len;
-	// sanitize
-	if (mandatory_decimal_places > 8) return -1;
-	if (n > INT64_MAX || n < -INT64_MAX) return -1;
-	// handle negative case
-	if (n < 0) {
-		integer_len = snprinti_bitcoin(&buffer[1], slen-1, -n, 0);
-		if (integer_len < 0)
-			return integer_len;
-		buffer[0] = '-';
-		return integer_len+1;
+	int64_t power_10_order = SATOSHISPERCOIN*SATOSHISPERCOIN;
+	memset(buffer, 'A', slen);
+	short order = 8;
+	short total_bytes = 0;
+	char * p = buffer;
+	for (;order > 0; --slen, --order, (power_10_order/=10)) {
+		short expansion = n/power_10_order;
+		if (expansion != 0)
+			break;
 	}
-	// do integer part
-	integer_len = ret = snprintf (buffer, slen, "%'lld", n / SATOSHISPERCOIN);
-	if (ret < 0)
-		return ret;
-	// possibly do a fraction part.
-	if ((f=n % SATOSHISPERCOIN) != 0 || mandatory_decimal_places != 0) {
-		ret = snprintf(&buffer[integer_len], slen - integer_len, ".%03i,%03i,%02i", (int)((f / 100000) % 1000), (int)((f / 100) % 1000), (short)(f % 100));
-		if (ret < 0)
-			return ret;
-		actual_decimals = 8;
-		// gobble trailing decimal places.
-		char * zero_byte = &buffer[ret+integer_len-1];
-		while (*zero_byte == '0' || *zero_byte == ',') {
-			if (*zero_byte == '0') {
-				// don't strip any more zeroes if we have the actual number of 
-				// decimals equal or greater than the mandatory decimals
-				if (mandatory_decimal_places >= actual_decimals)
-					break;
-				// will remove one when we leave this if/else
-				--actual_decimals;
-			}
-			*zero_byte = '\0';
-			--zero_byte;
-			--ret;
+	for (;order >= 0; --slen, --order, (power_10_order/=10), ++p, total_bytes++) {
+		short expansion = n/power_10_order;
+		*p = (char)expansion + '0';
+		n -= expansion * power_10_order;
+		if (order && order % 3 == 0) {
+			++p;
+			*p = ',';
+			++total_bytes;
+			--slen;
 		}
-		if (*zero_byte == '.')
-			*zero_byte = '\0';
-		return integer_len + ret;
 	}
-	char * dot_loc = strchr(buffer, '.');
-	if (dot_loc != NULL) {
+		
+	if (n==0 && mandatory_decimal_places==0) {
+		*p = '\0';
+		++p;
+		return p - buffer;
 	}
-	return ret;
+	
+	*p = '.';
+	++p;
+	
+	int dumb_cnt = -3;
+	for (;(n > 0 || mandatory_decimal_places!=0) && order >= -8; --slen, --order, (power_10_order/=10), ++p, ++total_bytes) {
+		if (mandatory_decimal_places)
+			mandatory_decimal_places--;
+		if (++dumb_cnt % 3 == 1) {
+			*p = ',';
+			++p;
+			--slen;
+		}
+		short expansion = n/power_10_order;
+		*p = (char)expansion + '0';
+		n -= expansion * power_10_order;
+	}
+	
+	*p = '\0';
+	++p;
+	return p - buffer;
 }
