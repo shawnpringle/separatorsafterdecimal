@@ -26,7 +26,8 @@ typedef long int int64_t;
 static int snprintpicomma( char * buffer, size_t slen, positive_int n ) {
 	int left_side, right_side;
 	if (n < 1000) {
-		return snprintf (buffer, slen, "%d", n);
+		// reported length includes NULL byte or not?
+		return snprintf(buffer, slen, "%d", n);
 	}
 	if ((left_side = snprintpicomma (buffer, slen, n/1000)) < 0) {
 		return left_side;
@@ -102,7 +103,7 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 	#else
 		37
 	#endif
-	; i+=3) {
+	-3; i+=3) {
 			l000_power_g_cap *= 1000;
 			g_cap += 1;
 			/*printf("10**%d\n", i);*/
@@ -179,81 +180,35 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 	}
 	n *= l000tog * 1000;
 	exp10 += 3;
-	++g;		
+	++g;
 	
 	*p = '.';
 	--slen;
 	++total_bytes;
 	++p;
 	
-	/* For the first group: */
-	switch (decimal_digits) {
-		case 0:
-			return total_bytes;
-		case 1:
-			++digit_count;
-			these_digits = (int)(n/(100*l000tog));
-			n -= 10*l000tog * these_digits;
-			byte_count = snprintf(p, slen, "%1d", these_digits);
-		case 2:
-			digit_count += 2;
-			decimal_digits -= decimal_digits;
-			these_digits = ((int)(n/(10*l000tog))) ;
-			n -= 100*l000tog * these_digits;
-			byte_count = snprintf(p, slen, "%02d", these_digits);
-		default:
-			digit_count += 3;
-			these_digits = ((int)(n/l000tog));
-			n -= l000tog * these_digits;
-			byte_count = snprintf(p, slen, "%03d", these_digits);
-	}
 	
-	if (byte_count < 0) {
-		return byte_count;
-	}
-	slen -= byte_count;
-	total_bytes += byte_count;
-	p += byte_count;
-	digit_count += byte_count;
-	decimal_digits -= byte_count;
-	
-	if (decimal_digits <= 0) {
-		return total_bytes;
-	}
-	
-	decimal_digits -= 3;
-	--g;
-	l000tog /= 1000;
-	
-	/* For the following groups: */
-	for (; n >= 1.0 && g >= 0 && (digit_count < digit_count_max) && slen > 3; --g, l000tog/=1000) {
-		these_digits = (int)(n/l000tog + 0.5);
-		if (these_digits >= 1000) {
-			these_digits = 999;
-		} else if (these_digits < 0) {
-			these_digits = 0;
+	int l0tok = 1000;
+	while (n >= 1 && slen > 0 && digit_count < digit_count_max) {
+		if (l0tok == 1) {
+			*p++ = ',';
+			l0tok = 100;
+			l000tog /= 1000;
+			++total_bytes;
+		} else {
+			l0tok /= 10;
 		}
-		n -= these_digits * l000tog;
-		byte_count = snprintf(p, slen, ",%03d", these_digits);
-		// should always be 4
-		if (byte_count != 4) {
-			if (byte_count >= 0) {
-				printf("byte count=%d, digits=%d, string so far %s\n", byte_count, these_digits, buffer);
-			}
-			assert(byte_count < 0);
-			return byte_count;
-		}
-		slen -= byte_count;
-		total_bytes += 4;
-		p += 4;
-		digit_count += 3;
+		--slen;
+		these_digits = n / (l0tok*l000tog);
+		char next_char = these_digits + '0';
+		++digit_count;
+		++total_bytes;
+		*p = next_char;
+		n -= these_digits * (l0tok*l000tog);
+		++p;
 	}
 	
-	for (--p; *p == '0' || *p == ',' || *p == '.'; --p) {
-		*p = '\0';
-	}
-	
-	return total_bytes;
+	return p - buffer;
 }
 
 
@@ -286,7 +241,7 @@ int snprinti_bitcoin(char * buffer, size_t slen, int64_t n, unsigned short manda
 	if (n==0 && mandatory_decimal_places==0) {
 		*p = '\0';
 		++p;
-		return p - buffer;
+		return p - buffer - 1;
 	}
 	
 	*p = '.';
@@ -308,5 +263,5 @@ int snprinti_bitcoin(char * buffer, size_t slen, int64_t n, unsigned short manda
 	
 	*p = '\0';
 	++p;
-	return p - buffer;
+	return p - buffer - 1;
 }
