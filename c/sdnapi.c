@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <string.h>
 #include <math.h>
+#include <float.h>
 #include <limits.h>
 #include "sdn.h"
 #ifdef WIN32__
@@ -88,6 +89,7 @@ static short min(short a, short b) {
 }
 
 
+
 int snprintgcomma( char * buffer, size_t slen, double n ) {
 	static long double l000_power_g_cap = 1;
 	static short g_cap;
@@ -106,30 +108,45 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 	/* after group_count_max more is just noise not in the original bits of the number even for long doubles*/
 	int digit_count_max = 16;
 	
-	memset(buffer, 0, slen);
+	#define can_do (buffer!=NULL && slen>=1)
 	
 	/* generate our limits if necessary */
 	if (l000_power_g_cap == 1) {
-		for (int i = 0; i < 
-	#ifdef LDBL_MAX_10_EXP
-		LDBL_MAX_10_EXP
-	#elif defined(DBL_MAX_10_EXP)
-		DBL_MAX_10_EXP
-	#else
-		37
-	#endif
-	-3; i+=3) {
-			l000_power_g_cap *= 1000;
-			g_cap += 1;
-			/*printf("10**%d\n", i);*/
+		const double our_max = DBL_MAX / 1000;
+		g = 0;
+		l000tog = 1;
+		while (1) {
+			if (l000tog > our_max) {
+				break;
+			}
+			++g;
+			l000tog *= 1000;
 		}
+		l000_power_g_cap = l000tog;
+		g_cap = g;
+	}
+	
+	if (n > 1e17) {
+		int buffer_length = (log(n) / log(1000))*4 + 1;
+		if (slen < buffer_length || buffer == NULL)
+			return buffer_length;
+	}
+	
+	
+	if (slen < 28 || buffer == NULL) {
+		char buf2[100];
+		int result = snprintgcomma(buf2, 100, n);
+		if (buffer != NULL) {
+			strncpy(buffer, buf2, slen > result ? result + 1 : slen);
+		}
+		return result;
 	}
 	
 	/* handle negative case */
 	if (n < 0) {
-		if (slen < 2)  return -1;
+		int result;
 		*buffer = '-';
-		int result = snprintgcomma(&buffer[1], slen-1, -n);
+		result = snprintgcomma(&buffer[1], slen-1, -n);
 		return result < 0 ? result : result + 1;
 	}
 	
@@ -138,7 +155,6 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 	l000tog = l000_power_g_cap;
 	for (g = g_cap; g >= 0; --g, l000tog/=1000.0) {
 
-		/*printf("10**(3*%d)\n", g);*/
 		if ((these_digits = n/l000tog) != 0 || (g == 0)) {
 			if ((byte_count = snprintf(p,  slen, "%d", these_digits)) < 0) {
 					return byte_count;
@@ -179,7 +195,7 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 	assert(g == -1);
 	assert(l000tog < 1);
 	
-	if (digit_count >= digit_count_max || slen < 2) {
+	if (digit_count >= digit_count_max || slen < 2 || n == 0) {
 		return total_bytes;
 	}
 
@@ -223,6 +239,7 @@ int snprintgcomma( char * buffer, size_t slen, double n ) {
 		++p;
 	}
 	
+	*p = '\0';
 	return p - buffer;
 }
 
@@ -232,7 +249,6 @@ const long double SATOSHISPERCOIN = 100000000;
 
 int snprinti_bitcoin(char * buffer, size_t slen, int64_t n, unsigned short mandatory_decimal_places) {
 	int64_t power_10_order = SATOSHISPERCOIN*SATOSHISPERCOIN;
-	memset(buffer, 'A', slen);
 	short order = 8;
 	short total_bytes = 0;
 	char * p = buffer;

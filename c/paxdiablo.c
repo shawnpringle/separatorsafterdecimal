@@ -9,7 +9,7 @@
 #include "sdn.h"
 #include <string.h>
 #include <stdio.h>
-
+#include <math.h>
 #include <assert.h>
 #include <float.h>
 #include <limits.h>
@@ -25,8 +25,16 @@ struct btctest_case {
 	char * result8;
 };
 
+int findnonA(char * haystack, int from, int limit) {
+	for (int i = from; i < limit-1; ++i) {
+		if (haystack[i] != 'A')
+			return i;
+	}
+	return -1;
+}
+
 int main (void) {
-	char experiment[100];
+	char experiment[4000];
 	size_t  rlen;
 	const int x[] = {
 		-1234567890, -123456, -12345, -1000, -999, -1,
@@ -36,8 +44,8 @@ int main (void) {
 		"1,000", "12,345", "123,456", "1,234,567,890" 			};
 	
 	const struct dtest_case gx[] = { {3.141592, "3.141,592"}, {-0.22222222L,"-0.222,222,22"}, {0.123456, "0.123,456" }, 
-	{0.12345, "0.123,45" }, {0.1234, "0.123,4" }, {100000000000000000.0, "100,000,000,000,000,000"}, {0.1, "0.1"} };
-    const struct btctest_case btc[] = {    	
+	{0.12345, "0.123,45" }, {0.1234, "0.123,4" },{10000, "10,000"}, {100000000000000000.0, "100,000,000,000,000,000"}, {1.111111111111111111e15, "1,111,111,111,111,111"},  {1.111111111111111111e12, "1,111,111,111,111.111"}, {6.21e28, "62,100,000,000,000,000,000,000,000,000"}, {0.1, "0.1"}};
+    const struct btctest_case btc[] = { 	
     	{10, "0.000,000,1", "0.000,000,1", "0.000,000,10"},
     	{1000000000000L, "10,000", "10,000.000", "10,000.000,000,00"},
     	{0, "0", "0.000", "0.000,000,00"}, 
@@ -47,13 +55,14 @@ int main (void) {
     	{5000000LL, "0.05", "0.050", "0.050,000,00"},
     	{10000000LL, "0.1", "0.100", "0.100,000,00"},
     	{314159200, "3.141,592", "3.141,592", "3.141,592,00"}
+    	
     };
     	
 
     int buffer_not_overran_flag = 1;
     int required_size_not_wrong_flag = 1;
     int result_string_not_wrong_flag = 1;
-    for (int len = 100; len >= 0; len -= 20) {
+    for (int len = 90; len >= 0; len -= 4) {
 		const int *px = x;
 		const char **pr = r;
 		
@@ -61,15 +70,18 @@ int main (void) {
 			memset(experiment, 'A', 99);
 			experiment[99] ='\0';
 			rlen = snprinticomma(experiment, len, *px);
-			for (int i = rlen+1; i < 99; ++i) {
-				if (experiment[i] != 'A') {
-					printf("%-15d:Buffer overrun for case %s with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", *px, *pr, len, i, rlen+1);
-					printf("%s\n", experiment);
-					buffer_not_overran_flag = 0;
-					break;
-				}
+			int i;
+			if ((i = findnonA(experiment, len, 100)) != -1) {
+				printf("%-15d:Buffer overrun for case %s with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", *px, *pr, len, i, len+1);
+				printf("%s\n", experiment);
+				buffer_not_overran_flag = 0;
 			}
-			if (buffer_not_overran_flag && rlen < len && strcmp(experiment, *pr)) {
+			if ((i = findnonA(experiment, rlen+1, 100)) != -1) {
+				printf("%-15d:Buffer wrote to beyond function's reported write count for case %s with length %d.  Byte written in position %d.  Data should have been only written up to %d.   This byte is 0x%2x\n", *px, *pr, len, i, rlen+1, experiment[i]);
+				printf("%s\n", experiment);
+				buffer_not_overran_flag = 0;
+			}
+			if (buffer_not_overran_flag && strlen(*pr) < len && strcmp(experiment, *pr)) {
 				printf ("%-15d: Expected %s but got %s\n", *px, *pr, experiment);
 			}
 			if (buffer_not_overran_flag && strlen(*pr) != rlen) {
@@ -87,20 +99,22 @@ int main (void) {
 		while (pd != &(gx[sizeof(gx)/sizeof(*gx)])) {
 			memset(experiment, 'A', 99);
 			experiment[99] ='\0';
+			int i;
 			rlen = snprintgcomma(experiment, len, pd->in);
-			for (int i = rlen+1; i < 99; ++i) {
-				if (experiment[i] != 'A') {
-					printf("%-15g:Buffer overrun for case %s '%s' with length %d.  Byte written in position %d.  Data should have been only written up to %d.\n", pd->in, pd->result, experiment, len, i, rlen);
-					buffer_not_overran_flag = 0;
-					break;
-				}
+			if ((i = findnonA(experiment, len, 100)) != -1) {
+				printf("%-15g:Buffer overrun for case %s '%s' with length %d.  Byte written in position %d.  Data should have been only written up to %d.  The byte is 0x%02x\n", pd->in, pd->result, experiment, len, i, len, experiment[i]);
+				buffer_not_overran_flag = 0;
 			}
-			if (buffer_not_overran_flag && strcmp(experiment, pd->result)) {
+			if ((i = findnonA(experiment, rlen+1, 100)) != -1) {
+				printf("%-15g:Buffer wrote to beyond function's reported write count case %s '%s' with length %d.  Byte written in position %d.  Data should have been only written up to %d.  The byte is 0x%02x\n", pd->in, pd->result, experiment, len, i, rlen, experiment[i]);
+				buffer_not_overran_flag = 0;
+			}
+			if (buffer_not_overran_flag && strlen(pd->result) < len && strcmp(experiment, pd->result)) {
 				printf ("%-15g: Expected %s but got %s\n", pd->in, pd->result, experiment);
 			}
-			if (buffer_not_overran_flag && strlen(experiment) != rlen) {
+			if (buffer_not_overran_flag && strlen(pd->result) != rlen) {
 			   printf("%-15g: Returned value from routine does not report the correct written length."
-			   "  Should be %d but got %d\n", pd->in, strlen(experiment), rlen);
+			   "  Should be %d but got %d\n", pd->in, strlen(pd->result), rlen);
 			   required_size_not_wrong_flag = 0;
 			}
 			pd++;
@@ -168,5 +182,10 @@ int main (void) {
 			pb++;
 		}
 	}
+	
+	char b[10000];
+	printf("%d ", snprintgcomma(b, 100000, 6.3213213e207));
+	printf("%s len=%d\n", b, strlen(b));
+	
 	return 0;
 }
